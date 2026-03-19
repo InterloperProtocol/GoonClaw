@@ -29,6 +29,11 @@ const rawServerEnvSchema = z.object({
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
   FIREBASE_PRIVATE_KEY: z.string().optional(),
   FIREBASE_STORAGE_BUCKET: z.string().optional(),
+  AGENT_MODEL_PROVIDER: z.string().optional(),
+  GOOGLE_GENAI_USE_VERTEXAI: z.string().optional(),
+  VERTEX_AI_PROJECT_ID: z.string().optional(),
+  VERTEX_AI_LOCATION: z.string().optional(),
+  VERTEX_AI_MODEL: z.string().optional(),
   WORKER_URL: z.string().optional(),
   WORKER_TOKEN: z.string().optional(),
   ALLOW_IN_PROCESS_WORKER: z.string().optional(),
@@ -66,6 +71,11 @@ const resolvedServerEnvSchema = z.object({
   FIREBASE_CLIENT_EMAIL: z.string(),
   FIREBASE_PRIVATE_KEY: z.string(),
   FIREBASE_STORAGE_BUCKET: z.string(),
+  AGENT_MODEL_PROVIDER: z.string().min(1),
+  GOOGLE_GENAI_USE_VERTEXAI: z.enum(["true", "false"]),
+  VERTEX_AI_PROJECT_ID: z.string(),
+  VERTEX_AI_LOCATION: z.string().min(1),
+  VERTEX_AI_MODEL: z.string().min(1),
   WORKER_URL: z.string(),
   WORKER_TOKEN: z.string().min(1),
   ALLOW_IN_PROCESS_WORKER: z.enum(["true", "false"]),
@@ -164,10 +174,24 @@ function inferLaunchAtFromFreeUntil(value: string | undefined) {
   return new Date(freeUntil.getTime() - 24 * 60 * 60_000).toISOString();
 }
 
+function inferProjectIdFromFirebaseConfig(value: string | undefined) {
+  if (!value?.trim()) return "";
+
+  try {
+    const parsed = JSON.parse(value) as { projectId?: string };
+    return parsed.projectId?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
 function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
   const isProduction = raw.NODE_ENV === "production";
   const allowInProcessWorker =
     raw.ALLOW_IN_PROCESS_WORKER ?? (isProduction ? "false" : "true");
+  const firebaseConfigProjectId = inferProjectIdFromFirebaseConfig(
+    process.env.FIREBASE_CONFIG,
+  );
 
   if (
     isProduction &&
@@ -247,6 +271,16 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
     FIREBASE_CLIENT_EMAIL: raw.FIREBASE_CLIENT_EMAIL?.trim() || "",
     FIREBASE_PRIVATE_KEY: raw.FIREBASE_PRIVATE_KEY?.trim() || "",
     FIREBASE_STORAGE_BUCKET: raw.FIREBASE_STORAGE_BUCKET?.trim() || "",
+    AGENT_MODEL_PROVIDER:
+      raw.AGENT_MODEL_PROVIDER?.trim() || "vertex-ai-gemini",
+    GOOGLE_GENAI_USE_VERTEXAI:
+      raw.GOOGLE_GENAI_USE_VERTEXAI?.trim().toLowerCase() || "true",
+    VERTEX_AI_PROJECT_ID:
+      raw.VERTEX_AI_PROJECT_ID?.trim() ||
+      raw.FIREBASE_PROJECT_ID?.trim() ||
+      firebaseConfigProjectId,
+    VERTEX_AI_LOCATION: raw.VERTEX_AI_LOCATION?.trim() || "global",
+    VERTEX_AI_MODEL: raw.VERTEX_AI_MODEL?.trim() || "gemini-2.5-flash",
     WORKER_URL: raw.WORKER_URL?.trim() || "",
     WORKER_TOKEN: resolveValue(
       raw.WORKER_TOKEN,

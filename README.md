@@ -2,6 +2,8 @@
 
 GoonClaw is a Next.js control surface for token-driven device sessions, livestream payments, crypto news, and tokenized-agent operations.
 
+The public deployment is hosted on Firebase App Hosting in Google Cloud, and the agent model scaffold now targets Vertex AI Gemini via the Google Gen AI SDK.
+
 ## Surfaces
 
 - `/goonclaw`: personal panel with chart, video or stream embed, saved-device control, news, and agent status
@@ -23,6 +25,7 @@ GoonClaw is a Next.js control surface for token-driven device sessions, livestre
 
 - `@pump-fun/pump-sdk`
 - `@pump-fun/agent-payments-sdk`
+- `@google/genai`
 
 ## Agent Model Scaffold
 
@@ -31,6 +34,7 @@ GoonClaw is a Next.js control surface for token-driven device sessions, livestre
 - cNFT issuance cadence defaults to every `10 minutes`
 - token-mint scanning arms automatically when `AGENT_TOKEN_MINT_ADDRESS` or `GOONCLAW_TOKEN_MINT` is configured
 - invoice preview readiness is exposed through `/api/agent/status`
+- hosted model defaults to `gemini-2.5-flash` on Vertex AI
 
 ## Local Development
 
@@ -50,6 +54,14 @@ Start from `.env.example`. The app is ready for later wiring of:
 - cNFT collection, tree, and authority secrets
 - Helius and Birdeye API keys
 - agent payment currency and token mint addresses
+- Vertex AI Gemini project, region, and model overrides
+
+## Hosting
+
+- Firebase project: `goonclaw-app`
+- App Hosting URL: `https://goonclaw--goonclaw-app.us-east4.hosted.app`
+- App Hosting backend: `goonclaw`
+- Vertex AI access is granted to the App Hosting compute service account with `roles/aiplatform.user`
 
 ## Notes
 

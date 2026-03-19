@@ -1,7 +1,7 @@
 {
   "apphosting": [
     {
-      "backendId": "goonclaw-web",
+      "backendId": "goonclaw",
       "rootDir": ".",
       "ignore": [
         "node_modules",

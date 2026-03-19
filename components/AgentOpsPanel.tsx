@@ -61,7 +61,7 @@ export function AgentOpsPanel() {
         </div>
         <div className="source-pill">
           <span className="status-dot" />
-          {status?.autoScanEnabled ? "scan armed" : "awaiting vars"}
+          {status?.modelRuntime.configured ? "vertex ready" : "awaiting vars"}
         </div>
       </div>
 
@@ -87,6 +87,22 @@ export function AgentOpsPanel() {
       </div>
 
       <div className="history-list">
+        <div className="history-item">
+          <div>
+            <span>AI runtime</span>
+            <strong>
+              {status?.modelRuntime.configured ? "Vertex AI Gemini" : "Waiting"}
+            </strong>
+          </div>
+          <div>
+            <span>Model / region</span>
+            <strong>
+              {status
+                ? `${status.modelRuntime.model} @ ${status.modelRuntime.location}`
+                : "Waiting"}
+            </strong>
+          </div>
+        </div>
         <div className="history-item">
           <div>
             <span>Token mint scan</span>
@@ -115,10 +131,10 @@ export function AgentOpsPanel() {
             <strong>{status?.cnftTreeConfigured ? "Configured" : "Missing"}</strong>
           </div>
           <div>
-            <span>Collection / authority</span>
+            <span>Project / authority</span>
             <strong>
-              {status?.cnftCollectionConfigured && status?.cnftAuthorityConfigured
-                ? "Configured"
+              {status?.modelRuntime.projectId
+                ? `${status.modelRuntime.projectId}${status.cnftAuthorityConfigured ? " + auth" : ""}`
                 : "Waiting"}
             </strong>
           </div>

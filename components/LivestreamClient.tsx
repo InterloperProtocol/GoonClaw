@@ -210,7 +210,8 @@ export function LivestreamClient() {
             <strong>Public device rules</strong>
             <p>
               Cooldowns protect the queue, and the same tokenized-agent revenue model
-              can fund cNFT issuance plus token buybacks behind the scenes.
+              can fund cNFT issuance plus token buybacks behind the scenes, with the
+              hosted agent runtime aimed at Vertex AI Gemini.
             </p>
           </div>
         </div>

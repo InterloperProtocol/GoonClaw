@@ -32,7 +32,7 @@ export default function Home() {
           <div className="hero-badges">
             <span>Personal room at /goonclaw</span>
             <span>Public livestream queue at /livestream</span>
-            <span>OpenClaw + Pump tokenized-agent stack</span>
+            <span>OpenClaw + Pump + Vertex AI Gemini</span>
             <span>API-only Autoblow, Handy, and REST support</span>
           </div>
         </div>
@@ -42,7 +42,8 @@ export default function Home() {
             <p>
               cNFTs are intended to be issued by the agent from creator-fee
               revenue, with a reserve floor, timed issuance windows, and
-              buybacks handled from the remaining share.
+              buybacks handled from the remaining share. The hosted agent target
+              is Vertex AI Gemini on Google Cloud.
             </p>
           </div>
           <div className="button-row">

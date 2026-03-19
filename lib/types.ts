@@ -223,6 +223,15 @@ export interface ReferenceStatus {
   note: string;
 }
 
+export interface AgentModelStatus {
+  provider: string;
+  model: string;
+  projectId: string;
+  location: string;
+  usesVertexAi: boolean;
+  configured: boolean;
+}
+
 export interface AgentOpsStatus {
   tokenMint: string;
   autoScanEnabled: boolean;
@@ -236,6 +245,7 @@ export interface AgentOpsStatus {
   cnftCollectionConfigured: boolean;
   cnftTreeConfigured: boolean;
   cnftAuthorityConfigured: boolean;
+  modelRuntime: AgentModelStatus;
   references: ReferenceStatus[];
 }
 

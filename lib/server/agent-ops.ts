@@ -6,6 +6,7 @@ import { getInvoiceIdPDA } from "@pump-fun/agent-payments-sdk";
 import { PublicKey } from "@solana/web3.js";
 
 import { getServerEnv } from "@/lib/env";
+import { getAgentModelStatus } from "@/lib/server/agent-model";
 import { AgentOpsStatus, ReferenceStatus } from "@/lib/types";
 
 function readPackageVersions() {
@@ -13,6 +14,7 @@ function readPackageVersions() {
   const fallback = {
     pumpSdk: "unknown",
     agentPaymentsSdk: "unknown",
+    googleGenAiSdk: "unknown",
   };
 
   if (!existsSync(packageJsonPath)) {
@@ -28,6 +30,7 @@ function readPackageVersions() {
       pumpSdk: packageJson.dependencies?.["@pump-fun/pump-sdk"] ?? "missing",
       agentPaymentsSdk:
         packageJson.dependencies?.["@pump-fun/agent-payments-sdk"] ?? "missing",
+      googleGenAiSdk: packageJson.dependencies?.["@google/genai"] ?? "missing",
     };
   } catch {
     return fallback;
@@ -47,6 +50,7 @@ function safePublicKey(value?: string) {
 function buildReferences(versions: {
   pumpSdk: string;
   agentPaymentsSdk: string;
+  googleGenAiSdk: string;
 }): ReferenceStatus[] {
   const codexHome = path.join(os.homedir(), ".codex");
 
@@ -68,6 +72,12 @@ function buildReferences(versions: {
       label: "Agent Payments SDK",
       ready: versions.agentPaymentsSdk !== "missing",
       note: `Using ${versions.agentPaymentsSdk} for invoice-ready tokenized-agent flows.`,
+    },
+    {
+      id: "google-genai-sdk",
+      label: "Google Gen AI SDK",
+      ready: versions.googleGenAiSdk !== "missing",
+      note: `Using ${versions.googleGenAiSdk} for the Vertex AI Gemini runtime.`,
     },
     {
       id: "pump-tokenized-agents-skill",
@@ -139,6 +149,7 @@ export function getAgentOpsStatus(): AgentOpsStatus {
   const cnftIntervalMinutes = Number(
     process.env.GOONCLAW_CNFT_INTERVAL_MINUTES ?? "10",
   );
+  const modelRuntime = getAgentModelStatus();
 
   return {
     tokenMint,
@@ -153,6 +164,7 @@ export function getAgentOpsStatus(): AgentOpsStatus {
     cnftCollectionConfigured: Boolean(env.ACCESS_CNFT_COLLECTION),
     cnftTreeConfigured: Boolean(env.ACCESS_CNFT_TREE),
     cnftAuthorityConfigured: Boolean(env.ACCESS_CNFT_AUTHORITY_SECRET),
+    modelRuntime,
     references: buildReferences(versions),
   };
 }

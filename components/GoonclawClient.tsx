@@ -296,7 +296,7 @@ export function GoonclawClient({
           <div className="hero-badges">
             <span>Chart + video + device control</span>
             <span>Autoblow, Handy, and REST devices</span>
-            <span>OpenClaw + Pump tokenized-agent stack</span>
+            <span>OpenClaw + Pump + Vertex AI Gemini</span>
           </div>
         </div>
         <div className="hero-actions">
@@ -311,7 +311,8 @@ export function GoonclawClient({
             <strong>Agent model</strong>
             <p>
               cNFT issuance is planned as an automated agent flow funded from creator
-              fees, with a 1 SOL reserve and timed issuance windows.
+              fees, with Vertex AI Gemini set as the hosted model target beside the
+              1 SOL reserve and timed issuance windows.
             </p>
           </div>
         </div>

@@ -1,262 +1,42 @@
 runConfig:
   minInstances: 0
-  maxInstances: 10
-  concurrency: 50
-  cpu: 1
-  memoryMiB: 1024
 
 env:
-  - variable: NEXT_PUBLIC_APP_NAME
-    value: GoonClaw
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_SOLANA_NETWORK
-    value: mainnet-beta
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_SOLANA_RPC_URL
-    value: https://api.mainnet-beta.solana.com
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_TREASURY_WALLET
-    value: HQhD7ZRMp4jv2NFdN26nJ5NCWySQD6nQM9KoG5doapDi
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_ACCESS_CNFT_PRICE_SOL
-    value: "0.25"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_GOONCLAW_TOKEN_MINT
-    value: ""
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_GOONCLAW_BURN_AMOUNT_RAW
-    value: "100000000000"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_GOONCLAW_TOKEN_DECIMALS
-    value: "6"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FREE_ACCESS_UNTIL
-    value: 2026-03-20T12:00:00.000Z
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_ACCESS_TOKEN_SYMBOL
-    value: GOON
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_GOONCLAW_MEDIA_URL
-    value: ""
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_LIVESTREAM_EMBED_URL
-    value: ""
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_LIVESTREAM_STANDARD_PRICE_SOL
-    value: "0.001"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_LIVESTREAM_PRIORITY_PRICE_SOL
-    value: "0.01"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_LIVESTREAM_SESSION_SECONDS
-    value: "60"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: SOLANA_NETWORK
-    value: mainnet-beta
-    availability:
-      - RUNTIME
-
-  - variable: SOLANA_RPC_URL
-    value: https://api.mainnet-beta.solana.com
-    availability:
-      - RUNTIME
-
-  - variable: TREASURY_WALLET
-    value: HQhD7ZRMp4jv2NFdN26nJ5NCWySQD6nQM9KoG5doapDi
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_PRICE_SOL
-    value: "0.25"
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_NAME
-    value: GoonClaw Access Pass
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_METADATA_URI
-    value: https://example.com/goonclaw-access.json
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_COLLECTION
-    value: ""
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_TREE
-    value: ""
-    availability:
-      - RUNTIME
-
-  - variable: GOONCLAW_TOKEN_MINT
-    value: ""
-    availability:
-      - RUNTIME
-
-  - variable: GOONCLAW_BURN_AMOUNT_RAW
-    value: "100000000000"
-    availability:
-      - RUNTIME
-
-  - variable: GOONCLAW_TOKEN_DECIMALS
-    value: "6"
-    availability:
-      - RUNTIME
-
-  - variable: WORKER_URL
-    value: https://replace-with-your-cloud-run-worker-url.run.app
-    availability:
-      - RUNTIME
-
   - variable: ALLOW_IN_PROCESS_WORKER
-    value: "false"
+    value: "true"
     availability:
       - RUNTIME
 
-  - variable: PUBLIC_AUTOBLOW_DEVICE_LABEL
-    value: GoonClaw Public Device
+  - variable: AGENT_MODEL_PROVIDER
+    value: "vertex-ai-gemini"
     availability:
       - RUNTIME
 
-  - variable: GOONCLAW_CREATOR_FEE_CNFT_SHARE_PCT
-    value: "50"
+  - variable: GOOGLE_GENAI_USE_VERTEXAI
+    value: "true"
     availability:
       - RUNTIME
 
-  - variable: GOONCLAW_BUYBACK_SHARE_PCT
-    value: "50"
+  - variable: VERTEX_AI_PROJECT_ID
+    value: "goonclaw-app"
     availability:
       - RUNTIME
 
-  - variable: GOONCLAW_RESERVE_SOL
-    value: "1"
+  - variable: VERTEX_AI_LOCATION
+    value: "global"
     availability:
       - RUNTIME
 
-  - variable: GOONCLAW_CNFT_INTERVAL_MINUTES
-    value: "10"
-    availability:
-      - RUNTIME
-
-  - variable: AGENT_TOKEN_MINT_ADDRESS
-    value: ""
-    availability:
-      - RUNTIME
-
-  - variable: CURRENCY_MINT
-    value: ""
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_STANDARD_PRICE_SOL
-    value: "0.001"
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_PRIORITY_PRICE_SOL
-    value: "0.01"
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_SESSION_SECONDS
-    value: "60"
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_REQUESTER_COOLDOWN_SECONDS
-    value: "120"
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_CONTRACT_COOLDOWN_SECONDS
-    value: "600"
-    availability:
-      - RUNTIME
-
-  - variable: LIVESTREAM_MAX_QUEUE_LENGTH
-    value: "25"
+  - variable: VERTEX_AI_MODEL
+    value: "gemini-2.5-flash"
     availability:
       - RUNTIME
 
   - variable: APP_SESSION_SECRET
     secret: goonclaw-app-session-secret
-    availability:
-      - RUNTIME
 
   - variable: DEVICE_CREDENTIALS_AES_KEY
     secret: goonclaw-device-credentials-aes-key
-    availability:
-      - RUNTIME
-
-  - variable: ACCESS_CNFT_AUTHORITY_SECRET
-    secret: goonclaw-cnft-authority-secret
-    availability:
-      - RUNTIME
-
-  - variable: HELIUS_API_KEY
-    secret: goonclaw-helius-api-key
-    availability:
-      - RUNTIME
-
-  - variable: BIRDEYE_API_KEY
-    secret: goonclaw-birdeye-api-key
-    availability:
-      - RUNTIME
-
-  - variable: PUBLIC_AUTOBLOW_DEVICE_TOKEN
-    secret: goonclaw-public-device-token
-    availability:
-      - RUNTIME
 
   - variable: WORKER_TOKEN
     secret: goonclaw-worker-token
-    availability:
-      - RUNTIME
