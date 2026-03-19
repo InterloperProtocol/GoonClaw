@@ -1,0 +1,143 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { AgentOpsStatus } from "@/lib/types";
+
+function shorten(value?: string) {
+  if (!value) return "Waiting";
+  if (value.length < 14) return value;
+  return `${value.slice(0, 6)}...${value.slice(-6)}`;
+}
+
+export function AgentOpsPanel() {
+  const [status, setStatus] = useState<AgentOpsStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const response = await fetch("/api/agent/status");
+        const payload = (await response.json()) as AgentOpsStatus & {
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to load agent status");
+        }
+
+        if (!cancelled) {
+          setStatus(payload);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setStatus(null);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load agent status",
+          );
+        }
+      }
+    }
+
+    void load();
+    const interval = window.setInterval(() => void load(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Agent Ops</p>
+          <h2>cNFT issuance and buyback policy</h2>
+        </div>
+        <div className="source-pill">
+          <span className="status-dot" />
+          {status?.autoScanEnabled ? "scan armed" : "awaiting vars"}
+        </div>
+      </div>
+
+      {error ? <p className="error-banner">{error}</p> : null}
+
+      <div className="stats-grid">
+        <div className="metric-card">
+          <span>cNFT cadence</span>
+          <strong>{status?.cnftIntervalMinutes ?? 10} min</strong>
+        </div>
+        <div className="metric-card">
+          <span>Creator fees to cNFTs</span>
+          <strong>{status?.creatorFeeCnftSharePct ?? 50}%</strong>
+        </div>
+        <div className="metric-card">
+          <span>Creator fees to buybacks</span>
+          <strong>{status?.creatorFeeBuybackSharePct ?? 50}%</strong>
+        </div>
+        <div className="metric-card">
+          <span>Reserve floor</span>
+          <strong>{status?.reserveFloorSol ?? 1} SOL</strong>
+        </div>
+      </div>
+
+      <div className="history-list">
+        <div className="history-item">
+          <div>
+            <span>Token mint scan</span>
+            <strong>{status?.autoScanEnabled ? "Active" : "Waiting for mint"}</strong>
+          </div>
+          <div>
+            <span>Token mint</span>
+            <strong>{shorten(status?.tokenMint)}</strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Invoice verification</span>
+            <strong>
+              {status?.invoiceVerificationReady ? "Pump Agent Payments" : "Not armed"}
+            </strong>
+          </div>
+          <div>
+            <span>Invoice preview</span>
+            <strong>{shorten(status?.invoicePreviewId)}</strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>cNFT tree</span>
+            <strong>{status?.cnftTreeConfigured ? "Configured" : "Missing"}</strong>
+          </div>
+          <div>
+            <span>Collection / authority</span>
+            <strong>
+              {status?.cnftCollectionConfigured && status?.cnftAuthorityConfigured
+                ? "Configured"
+                : "Waiting"}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="reference-list">
+        {status?.references.map((reference) => (
+          <article key={reference.id} className="reference-item">
+            <div>
+              <strong>{reference.label}</strong>
+              <p>{reference.note}</p>
+            </div>
+            <span className={reference.ready ? "status-chip ready" : "status-chip"}>
+              {reference.ready ? "Ready" : "Missing"}
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
