@@ -57,7 +57,7 @@ export function AgentOpsPanel() {
       <div className="panel-header">
         <div>
           <p className="eyebrow">Agent Ops</p>
-          <h2>cNFT issuance and buyback policy</h2>
+          <h2>Manual cNFT claims and buyback policy</h2>
         </div>
         <div className="source-pill">
           <span className="status-dot" />
@@ -69,20 +69,20 @@ export function AgentOpsPanel() {
 
       <div className="stats-grid">
         <div className="metric-card">
-          <span>cNFT cadence</span>
-          <strong>{status?.cnftIntervalMinutes ?? 10} min</strong>
+          <span>Claim flow</span>
+          <strong>Manual</strong>
         </div>
         <div className="metric-card">
-          <span>Creator fees to cNFTs</span>
+          <span>Eligibility gate</span>
+          <strong>LaunchONomics</strong>
+        </div>
+        <div className="metric-card">
+          <span>Creator fees for cNFT pool</span>
           <strong>{status?.creatorFeeCnftSharePct ?? 50}%</strong>
         </div>
         <div className="metric-card">
           <span>Creator fees to buybacks</span>
           <strong>{status?.creatorFeeBuybackSharePct ?? 50}%</strong>
-        </div>
-        <div className="metric-card">
-          <span>Reserve floor</span>
-          <strong>{status?.reserveFloorSol ?? 1} SOL</strong>
         </div>
       </div>
 
@@ -105,12 +105,12 @@ export function AgentOpsPanel() {
         </div>
         <div className="history-item">
           <div>
-            <span>Token mint scan</span>
-            <strong>{status?.autoScanEnabled ? "Active" : "Waiting for mint"}</strong>
+            <span>Claim action</span>
+            <strong>Check eligibility, then click receive</strong>
           </div>
           <div>
-            <span>Token mint</span>
-            <strong>{shorten(status?.tokenMint)}</strong>
+            <span>Reserve floor</span>
+            <strong>{status?.reserveFloorSol ?? 1} SOL</strong>
           </div>
         </div>
         <div className="history-item">
@@ -121,8 +121,8 @@ export function AgentOpsPanel() {
             </strong>
           </div>
           <div>
-            <span>Invoice preview</span>
-            <strong>{shorten(status?.invoicePreviewId)}</strong>
+            <span>Payment token</span>
+            <strong>{shorten(status?.paymentCurrencyMint)}</strong>
           </div>
         </div>
         <div className="history-item">

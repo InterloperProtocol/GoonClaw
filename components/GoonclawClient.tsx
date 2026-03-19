@@ -310,9 +310,9 @@ export function GoonclawClient({
           <div className="toast-banner">
             <strong>Agent model</strong>
             <p>
-              cNFT issuance is planned as an automated agent flow funded from creator
-              fees, with Vertex AI Gemini set as the hosted model target beside the
-              1 SOL reserve and timed issuance windows.
+              Subscription cNFTs now use a manual eligibility-and-claim flow. The
+              hosted model target stays on Vertex AI Gemini beside the buyback and
+              reserve policy.
             </p>
           </div>
         </div>

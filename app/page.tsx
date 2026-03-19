@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AgentOpsPanel } from "@/components/AgentOpsPanel";
 import { FaqPanel } from "@/components/FaqPanel";
+import { HomeEligibilityCta } from "@/components/HomeEligibilityCta";
 import { SiteNav } from "@/components/SiteNav";
 import { getPublicEnv } from "@/lib/env";
 
@@ -25,7 +26,7 @@ export default function Home() {
           <h1>Personal and livestream token control, now under one name.</h1>
           <p className="hero-summary">
             GoonClaw combines a private control room, a public livestream panel,
-            chart sync, crypto news, and tokenized-agent automation. The guest
+            chart sync, crypto news, and a manual eligibility claim flow. The guest
             window stays open until {freeUntilLabel}; after that, LaunchONomics
             can score wallets that traded {config.NEXT_PUBLIC_ACCESS_TOKEN_SYMBOL}.
           </p>
@@ -40,15 +41,14 @@ export default function Home() {
           <div className="toast-banner">
             <strong>Agent policy</strong>
             <p>
-              cNFTs are intended to be issued by the agent from creator-fee
-              revenue, with a reserve floor, timed issuance windows, and
-              buybacks handled from the remaining share. The hosted agent target
-              is Vertex AI Gemini on Google Cloud.
+              Subscription cNFTs are now handled as a manual eligibility claim.
+              A person checks the wallet, then clicks the receive button. Buybacks
+              and the Google-hosted agent runtime stay in place separately.
             </p>
           </div>
           <div className="button-row">
-            <Link className="button button-secondary" href="/launchonomics">
-              Check LaunchONomics
+            <Link className="button button-secondary" href="/eligibility">
+              Check Eligibility
             </Link>
             <Link className="button button-primary" href="/goonclaw">
               Open Personal
@@ -80,23 +80,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">LaunchONomics</p>
-                <h2>Check wallet tiers now</h2>
-              </div>
-            </div>
-            <p className="hero-summary">
-              Paste any wallet to see whether it earned monthly, yearly, 5-year,
-              or lifetime access from launch-day trading behavior.
-            </p>
-            <div className="button-row">
-              <Link className="button button-primary" href="/launchonomics">
-                Go to /launchonomics
-              </Link>
-            </div>
-          </section>
+          <HomeEligibilityCta />
         </div>
 
         <div className="dashboard-column">

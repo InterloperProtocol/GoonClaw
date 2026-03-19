@@ -6,9 +6,10 @@ The public deployment is hosted on Firebase App Hosting in Google Cloud, and the
 
 ## Surfaces
 
+- `/eligibility`: wallet lookup plus manual subscription cNFT claim
 - `/goonclaw`: personal panel with chart, video or stream embed, saved-device control, news, and agent status
 - `/livestream`: public stream panel with chart, payment queue, news, and device-control requests
-- `/launchonomics`: wallet scoring for access tiers
+- `/launchonomics`: legacy route for the eligibility checker
 - `/bagstroke` and `/personal`: legacy redirects to `/goonclaw`
 - `/streamer`: legacy redirect to `/livestream`
 
@@ -29,10 +30,10 @@ The public deployment is hosted on Firebase App Hosting in Google Cloud, and the
 
 ## Agent Model Scaffold
 
-- creator fees default to `50%` cNFT issuance and `50%` buybacks
+- subscription cNFTs are now sent manually after an eligibility check
+- creator fees default to `50%` cNFT pool and `50%` buybacks
 - reserve floor defaults to `1 SOL`
-- cNFT issuance cadence defaults to every `10 minutes`
-- token-mint scanning arms automatically when `AGENT_TOKEN_MINT_ADDRESS` or `GOONCLAW_TOKEN_MINT` is configured
+- LaunchONomics determines whether a wallet qualifies for a subscription cNFT
 - invoice preview readiness is exposed through `/api/agent/status`
 - hosted model defaults to `gemini-2.5-flash` on Vertex AI
 

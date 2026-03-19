@@ -1,14 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { SiteNav } from "@/components/SiteNav";
-import { LaunchonomicsEvaluation, LaunchonomicsTier } from "@/lib/types";
+import {
+  EntitlementRecord,
+  LaunchonomicsEvaluation,
+  LaunchonomicsTier,
+} from "@/lib/types";
 
 type Props = {
   accessTokenSymbol: string;
   freeAccessUntil: string;
   launchAt: string;
+};
+
+type ClaimResponse = {
+  ok?: boolean;
+  reused?: boolean;
+  entitlement?: EntitlementRecord | null;
+  error?: string;
 };
 
 const tierLabels: Record<LaunchonomicsTier, string> = {
@@ -40,9 +52,15 @@ export function LaunchonomicsClient({
   freeAccessUntil,
   launchAt,
 }: Props) {
-  const [wallet, setWallet] = useState("");
+  const searchParams = useSearchParams();
+  const queryWallet = searchParams.get("wallet")?.trim() || "";
+  const autoLookupRef = useRef<string>("");
+
+  const [wallet, setWallet] = useState(queryWallet);
   const [result, setResult] = useState<LaunchonomicsEvaluation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const freeUntilLabel = formatDate(freeAccessUntil);
@@ -62,35 +80,89 @@ export function LaunchonomicsClient({
   );
 
   const windows = result?.windows ?? fallbackWindows;
+  const canClaim = Boolean(result && result.tier !== "none");
 
-  async function lookup() {
+  const lookup = useCallback(async (targetWallet = wallet.trim()) => {
+    if (!targetWallet) return;
+
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     try {
       const response = await fetch(
-        `/api/launchonomics?wallet=${encodeURIComponent(wallet.trim())}`,
+        `/api/launchonomics?wallet=${encodeURIComponent(targetWallet)}`,
       );
       const payload = (await response.json()) as {
         error?: string;
         item?: LaunchonomicsEvaluation;
       };
       if (!response.ok || !payload.item) {
-        throw new Error(payload.error || "Failed to load LaunchONomics status");
+        throw new Error(payload.error || "Failed to load eligibility");
       }
 
+      setWallet(targetWallet);
       setResult(payload.item);
     } catch (requestError) {
       setResult(null);
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to load LaunchONomics status",
+          : "Failed to load eligibility",
       );
     } finally {
       setLoading(false);
     }
+  }, [wallet]);
+
+  async function claimSubscriptionCnft() {
+    if (!result || result.tier === "none") return;
+
+    setClaiming(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch("/api/entitlements/eligibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: result.wallet }),
+      });
+      const payload = (await response.json()) as ClaimResponse;
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to mint the subscription cNFT");
+      }
+
+      if (payload.reused) {
+        if (payload.entitlement?.type === "burn") {
+          setNotice("This wallet already has an active burn-based entitlement.");
+        } else {
+          setNotice("This wallet already has a subscription cNFT claim on record.");
+        }
+        return;
+      }
+
+      setNotice("Subscription cNFT minted to the eligible wallet.");
+    } catch (claimError) {
+      setError(
+        claimError instanceof Error
+          ? claimError.message
+          : "Failed to mint the subscription cNFT",
+      );
+    } finally {
+      setClaiming(false);
+    }
   }
+
+  useEffect(() => {
+    if (!queryWallet || autoLookupRef.current === queryWallet) {
+      return;
+    }
+
+    autoLookupRef.current = queryWallet;
+    setWallet(queryWallet);
+    void lookup(queryWallet);
+  }, [lookup, queryWallet]);
 
   return (
     <div className="app-shell">
@@ -98,18 +170,19 @@ export function LaunchonomicsClient({
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">LaunchONomics</p>
-          <h1>Early trading windows turn into long-term access.</h1>
+          <p className="eyebrow">Eligibility</p>
+          <h1>Check a wallet, then manually send the subscription cNFT.</h1>
           <p className="hero-summary">
             GoonClaw stays open for everyone until {freeUntilLabel}. After that,
-            LaunchONomics uses Helius wallet history for {accessTokenSymbol} to
-            score early traders without wallet connect on this page.
+            this page uses LaunchONomics and Helius wallet history for {accessTokenSymbol}
+            to check subscription eligibility. Nothing is auto-sent anymore: a person
+            reviews the wallet and manually clicks the receive button.
           </p>
           <div className="hero-badges">
-            <span>First 10 minutes: 5 years</span>
-            <span>First hour: yearly</span>
-            <span>First 12 hours: monthly</span>
-            <span>Held through 24 hours: lifetime + verified</span>
+            <span>Manual subscription claims</span>
+            <span>Wallet lookup without wallet connect</span>
+            <span>LaunchONomics review flow</span>
+            <span>Receive cNFT only after eligibility check</span>
           </div>
         </div>
         <div className="hero-actions">
@@ -118,15 +191,16 @@ export function LaunchonomicsClient({
             <p>{launchAt ? launchAtLabel : "Set a launch date to activate the checker."}</p>
           </div>
           <div className="toast-banner">
-            <strong>Public lookup</strong>
+            <strong>Manual review flow</strong>
             <p>
-              Paste any Solana wallet and the app will evaluate its launch-day
-              tier from Helius transfer history.
+              Enter a wallet, check its tier, and only then click
+              &nbsp;<strong>Receive subscription cNFT</strong>.
             </p>
           </div>
         </div>
       </section>
 
+      {notice ? <p className="toast-banner">{notice}</p> : null}
       {error ? <p className="error-banner">{error}</p> : null}
 
       <section className="dashboard-grid">
@@ -135,7 +209,7 @@ export function LaunchonomicsClient({
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Wallet Check</p>
-                <h2>Evaluate a launch wallet</h2>
+                <h2>Evaluate subscription eligibility</h2>
               </div>
             </div>
 
@@ -154,7 +228,7 @@ export function LaunchonomicsClient({
                 disabled={loading || !wallet.trim()}
                 onClick={() => void lookup()}
               >
-                {loading ? "Checking..." : "Check LaunchONomics"}
+                {loading ? "Checking..." : "Check eligibility"}
               </button>
             </div>
           </section>
@@ -225,7 +299,7 @@ export function LaunchonomicsClient({
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Result</p>
-                <h2>Wallet status</h2>
+                <h2>Eligibility status</h2>
               </div>
             </div>
 
@@ -284,11 +358,31 @@ export function LaunchonomicsClient({
                     </div>
                   </div>
                 </div>
+
+                <div className="button-row">
+                  <button
+                    className="button button-primary"
+                    disabled={!canClaim || claiming}
+                    onClick={() => void claimSubscriptionCnft()}
+                  >
+                    {claiming ? "Minting..." : "Receive subscription cNFT"}
+                  </button>
+                </div>
+
+                {!canClaim ? (
+                  <p className="empty-state">
+                    This wallet does not qualify for a subscription cNFT right now.
+                  </p>
+                ) : (
+                  <p className="empty-state">
+                    Manual flow: the cNFT is only sent after this button is clicked.
+                  </p>
+                )}
               </>
             ) : (
               <p className="empty-state">
-                No wallet checked yet. Paste an address to see its LaunchONomics
-                tier, badge, and hold status.
+                No wallet checked yet. Paste an address to review its LaunchONomics
+                tier and manually send the subscription cNFT if it qualifies.
               </p>
             )}
           </section>

@@ -58,9 +58,9 @@ This repo includes or depends on the following external references requested for
 
 ## Agent Policy Captured In UI
 
-- cNFTs are intended to be issued by the agent from creator-fee revenue
-- `50%` of creator fees route to cNFT issuance by default
+- subscription cNFTs are now claimed manually after checking wallet eligibility
+- `50%` of creator fees route to the cNFT pool by default
 - the remainder routes to token buybacks
 - the agent maintains a `1 SOL` reserve floor by default
-- cNFT issuance cadence defaults to `10 minutes`
-- the agent status panel reports whether token-mint scanning is armed
+- LaunchONomics decides whether a wallet qualifies for a subscription cNFT
+- the agent status panel now reflects the manual claim posture plus buyback policy

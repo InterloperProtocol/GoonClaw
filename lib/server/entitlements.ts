@@ -3,15 +3,26 @@ import { randomUUID } from "crypto";
 import { getServerEnv } from "@/lib/env";
 import { EntitlementRecord, OrderRecord } from "@/lib/types";
 import { nowIso } from "@/lib/utils";
-import { getEntitlement, saveOrder, upsertEntitlement } from "@/lib/server/repository";
+import {
+  getEntitlement,
+  saveOrder,
+  upsertEntitlement,
+} from "@/lib/server/repository";
 import {
   verifyBurnSignature,
   verifyTransferToTreasury,
   walletOwnsAccessCnft,
 } from "@/lib/server/solana";
 import { mintAccessCnft } from "@/lib/server/cnft";
+import { getLaunchonomicsEvaluation } from "@/lib/server/launchonomics";
 
-function buildEntitlement(wallet: string, type: "cnft" | "burn", referenceSignature: string, assetId?: string): EntitlementRecord {
+function buildEntitlement(
+  wallet: string,
+  type: "cnft" | "burn",
+  referenceSignature: string,
+  assetId?: string,
+  notes?: string,
+): EntitlementRecord {
   return {
     id: randomUUID(),
     wallet,
@@ -23,6 +34,7 @@ function buildEntitlement(wallet: string, type: "cnft" | "burn", referenceSignat
     updatedAt: nowIso(),
     lastVerifiedAt: nowIso(),
     cacheExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    notes,
   };
 }
 
@@ -122,6 +134,33 @@ export async function claimBurnEntitlement(wallet: string, signature: string) {
     ...order,
     entitlementId: entitlement.id,
   });
+  return entitlement;
+}
+
+export async function claimEligibilitySubscriptionCnft(wallet: string) {
+  const existingEntitlement = await getEntitlement(wallet);
+  if (existingEntitlement?.status === "active") {
+    return existingEntitlement;
+  }
+
+  if (existingEntitlement?.type === "cnft") {
+    return existingEntitlement;
+  }
+
+  const evaluation = await getLaunchonomicsEvaluation(wallet);
+  if (evaluation.tier === "none") {
+    throw new Error("Wallet is not eligible for a subscription cNFT");
+  }
+
+  const mintResult = await mintAccessCnft(wallet);
+  const entitlement = buildEntitlement(
+    wallet,
+    "cnft",
+    `launchonomics:${evaluation.tier}:${evaluation.launchAt}`,
+    mintResult.signature,
+    `Manual LaunchONomics subscription claim for ${evaluation.tier} tier`,
+  );
+  await upsertEntitlement(entitlement);
   return entitlement;
 }
 

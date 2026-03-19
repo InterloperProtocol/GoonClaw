@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { LaunchonomicsClient } from "@/components/LaunchonomicsClient";
 import { getPublicEnv } from "@/lib/env";
 
-export default function LaunchonomicsPage() {
+export default function EligibilityPage() {
   const config = getPublicEnv();
 
   return (
