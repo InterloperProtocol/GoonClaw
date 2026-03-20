@@ -70,19 +70,23 @@ const REQUEST_HEADERS = {
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
 };
 const YT_DLP_CACHE = new Map<string, CacheEntry>();
-const RUNTIME_TOOLS_ROOT = path.join(process.cwd(), "runtime-tools", "linux-x64");
-const BUNDLED_YT_DLP_PATH = path.join(
-  RUNTIME_TOOLS_ROOT,
-  `yt-dlp-${YT_DLP_VERSION}`,
-);
+const RUNTIME_TOOLS_CANDIDATES = [
+  path.join(process.cwd(), "runtime-tools", "linux-x64"),
+  path.join(process.cwd(), ".next", "standalone", "runtime-tools", "linux-x64"),
+  path.join(__dirname, "..", "..", "runtime-tools", "linux-x64"),
+];
+const RUNTIME_TOOLS_ROOT =
+  RUNTIME_TOOLS_CANDIDATES.find((candidate) => existsSync(candidate)) ??
+  RUNTIME_TOOLS_CANDIDATES[0];
+const BUNDLED_YT_DLP_PATH = path.join(RUNTIME_TOOLS_ROOT, `yt-dlp-${YT_DLP_VERSION}`);
 const BUNDLED_DENO_ARCHIVE_PATH = path.join(
   RUNTIME_TOOLS_ROOT,
-  `deno-v${DENO_VERSION}-x86_64-unknown-linux-gnu.zip`,
+  `deno-${DENO_VERSION}-x86_64-unknown-linux-gnu.zip`,
 );
 const EXTRACTED_DENO_ROOT = path.join(
   os.tmpdir(),
   "goonclaw-media-runtime",
-  `deno-v${DENO_VERSION}`,
+  `deno-${DENO_VERSION}`,
 );
 const EXTRACTED_DENO_PATH = path.join(EXTRACTED_DENO_ROOT, "deno");
 

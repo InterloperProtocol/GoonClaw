@@ -77,10 +77,12 @@ export function AgentOpsPanel() {
       </div>
       <p className="panel-lead">
         This panel refreshes automatically so you can quickly confirm whether
-        the services behind GoonClaw are ready.
+        the services behind GoonClaw are ready. It reports status only and does
+        not expose any guest-facing agent controls.
       </p>
 
       <div className="route-badges">
+        <StatusBadge tone="accent">Control stays in VS Code</StatusBadge>
         <StatusBadge tone="warning">Access sent after review</StatusBadge>
         <StatusBadge tone={status?.invoiceVerificationReady ? "success" : "neutral"}>
           {status?.invoiceVerificationReady ? "Payments ready" : "Payments not ready"}

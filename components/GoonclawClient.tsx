@@ -324,9 +324,6 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
         <PriceChart
           contractAddress={contractAddress.trim() || DEFAULT_CONTRACT_ADDRESS}
           onSnapshotChange={setChartSnapshot}
-          onContractAddressChange={setContractAddress}
-          resetContractAddress={DEFAULT_CONTRACT_ADDRESS}
-          resetLabel="Reset PUMP"
         />
         <NewsPanel
           title={`${chartSnapshot?.symbol ?? "Solana"} news`}
@@ -361,14 +358,11 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
               </select>
             </label>
             <label className="field">
-              <span>Selected setup / token</span>
+              <span>Contract address</span>
               <input
-                value={
-                  selectedDevice?.label
-                    ? `${selectedDevice.label} | ${contractAddress.slice(0, 4)}...${contractAddress.slice(-4)}`
-                    : `No setup selected | ${contractAddress.slice(0, 4)}...${contractAddress.slice(-4)}`
-                }
-                readOnly
+                value={contractAddress}
+                onChange={(event) => setContractAddress(event.target.value)}
+                placeholder="Enter a Solana contract address"
               />
             </label>
           </div>

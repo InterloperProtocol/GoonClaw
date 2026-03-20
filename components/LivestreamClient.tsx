@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { MediaEmbedPanel } from "@/components/MediaEmbedPanel";
 import { NewsPanel } from "@/components/NewsPanel";
 import { PriceChart } from "@/components/PriceChart";
+import { PublicChatPanel } from "@/components/PublicChatPanel";
 import { SiteNav } from "@/components/SiteNav";
+import { TrenchesPanel } from "@/components/TrenchesPanel";
 import { RouteHeader } from "@/components/ui/RouteHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DEFAULT_PUMP_TOKEN_MINT } from "@/lib/token-defaults";
@@ -58,7 +60,6 @@ function shorten(value?: string) {
 export function LivestreamClient() {
   const [state, setState] = useState<LivestreamState | null>(null);
   const [chartSnapshot, setChartSnapshot] = useState<ChartSnapshot | null>(null);
-  const [chartContractAddress, setChartContractAddress] = useState("");
   const [contractAddress, setContractAddress] = useState("");
   const [tier, setTier] = useState<LivestreamTier>("standard");
   const [signature, setSignature] = useState("");
@@ -96,10 +97,9 @@ export function LivestreamClient() {
   }, [checkout]);
 
   const focusContractAddress =
-    chartContractAddress.trim() ||
-    state?.current?.contractAddress ||
-    checkout?.contractAddress ||
     contractAddress.trim() ||
+    checkout?.contractAddress ||
+    state?.current?.contractAddress ||
     DEFAULT_CONTRACT_ADDRESS;
 
   async function createRequest() {
@@ -229,17 +229,6 @@ export function LivestreamClient() {
         <PriceChart
           contractAddress={focusContractAddress}
           onSnapshotChange={setChartSnapshot}
-          onContractAddressChange={setChartContractAddress}
-          quickContractAddress={state?.current?.contractAddress || checkout?.contractAddress}
-          quickLabel={
-            state?.current?.contractAddress
-              ? "Track live request"
-              : checkout?.contractAddress
-                ? "Track pending request"
-                : undefined
-          }
-          resetContractAddress={DEFAULT_CONTRACT_ADDRESS}
-          resetLabel="Reset PUMP"
         />
         <NewsPanel
           title={`${chartSnapshot?.symbol ?? "Solana"} news`}
@@ -251,6 +240,11 @@ export function LivestreamClient() {
           defaultUrl={state?.embedUrl || ""}
           storageKey="goonclaw-livestream-media"
         />
+      </section>
+
+      <section className="dashboard-grid dashboard-grid-secondary">
+        <TrenchesPanel />
+        <PublicChatPanel />
       </section>
 
       <section className="dashboard-grid">

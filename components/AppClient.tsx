@@ -766,7 +766,9 @@ export function AppClient({ config }: { config: PublicConfig }) {
           </div>
 
           <div className="dashboard-column wide">
-            <PriceChart contractAddress={contractAddress} />
+            <PriceChart
+              contractAddress={contractAddress.trim() || DEFAULT_PUMP_TOKEN_MINT}
+            />
 
             <section className="panel session-log">
               <div className="panel-header">

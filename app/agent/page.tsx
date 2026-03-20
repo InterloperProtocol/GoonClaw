@@ -13,14 +13,18 @@ export default function AgentPage() {
 
       <RouteHeader
         eyebrow="Platform status"
-        title="A clear view of what powers GoonClaw."
+        title="Read-only status for the private operator stack."
         summary={
           <>
             This page keeps the behind-the-scenes essentials in one place, from
             access delivery and payments to AI services and supporting tools.
+            It is status-only. Private control stays in VS Code, not in the guest UI.
           </>
         }
         badges={[
+          <StatusBadge key="readonly" tone="accent">
+            Read-only
+          </StatusBadge>,
           <StatusBadge key="health" tone="success">
             Service health
           </StatusBadge>,
@@ -47,14 +51,14 @@ export default function AgentPage() {
               <span>Platform health stays current without reloading the page.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">AI features</p>
-              <strong>Vertex AI Gemini</strong>
-              <span>AI service readiness is tracked here in one place.</span>
+              <p className="eyebrow">Control surface</p>
+              <strong>VS Code only</strong>
+              <span>Guests can view status here, but they cannot use the private agent.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Purpose</p>
               <strong>Behind-the-scenes clarity</strong>
-              <span>Payments, tools, and platform status without the guesswork.</span>
+              <span>Payments, logs, and readiness without exposing private controls.</span>
             </div>
           </div>
         }

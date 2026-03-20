@@ -404,9 +404,9 @@ export function MediaEmbedPanel({
         </div>
       ) : (
         <div className="embed-placeholder">
-          <strong>No media source loaded yet.</strong>
+          <strong>Ready for a stream when you are.</strong>
           <p>
-            Paste a video or stream link to start watching here.
+            Paste a video or stream link and this panel will switch into playback mode.
           </p>
         </div>
       )}
