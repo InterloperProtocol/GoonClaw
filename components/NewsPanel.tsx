@@ -20,7 +20,7 @@ function formatDate(value: string) {
 
 export function NewsPanel({
   title,
-  eyebrow = "News Pulse",
+  eyebrow = "Monitor the Situation",
   defaultCategory = "solana",
 }: {
   title: string;
