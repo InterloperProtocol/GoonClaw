@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 
 import AdmZip from "adm-zip";
 
+import { getServerEnv, type ServerEnv } from "@/lib/env";
+
 type MediaStreamType = "file" | "hls";
 type VideoMethod = "direct" | "extracted" | "yt-dlp";
 type IframeMethod = "embed" | "extracted";
@@ -216,6 +218,81 @@ function resolveDenoPath() {
   }
 
   return ensureExecutable(EXTRACTED_DENO_PATH, "Deno");
+}
+
+function resolveConfiguredCookiesPath(value: string) {
+  return path.resolve(value.trim());
+}
+
+type YtDlpCookieEnv = Pick<
+  ServerEnv,
+  "YT_DLP_COOKIES_PATH" | "YT_DLP_COOKIES_FROM_BROWSER"
+>;
+
+export function buildYtDlpCookieArgs(env: YtDlpCookieEnv) {
+  const cookiesPath = env.YT_DLP_COOKIES_PATH.trim();
+  if (cookiesPath) {
+    return ["--cookies", resolveConfiguredCookiesPath(cookiesPath)];
+  }
+
+  const cookiesFromBrowser = env.YT_DLP_COOKIES_FROM_BROWSER.trim();
+  if (cookiesFromBrowser) {
+    return ["--cookies-from-browser", cookiesFromBrowser];
+  }
+
+  return [];
+}
+
+function hasYtDlpCookieConfig(env: YtDlpCookieEnv) {
+  return Boolean(
+    env.YT_DLP_COOKIES_PATH.trim() || env.YT_DLP_COOKIES_FROM_BROWSER.trim(),
+  );
+}
+
+function normalizeYtDlpFailureText(value: string) {
+  return value.replace(/[’`]/g, "'").toLowerCase();
+}
+
+export function mapYtDlpFailureMessage(
+  message: string,
+  stderr: string,
+  hasCookieConfig: boolean,
+) {
+  const combinedMessage = normalizeYtDlpFailureText(`${message}\n${stderr}`);
+
+  if (combinedMessage.includes("timed out")) {
+    return "yt-dlp timed out while resolving the media URL.";
+  }
+
+  if (combinedMessage.includes("deno")) {
+    return "Deno runtime is missing or incompatible for the official yt-dlp resolver.";
+  }
+
+  if (combinedMessage.includes("exec format error")) {
+    return "yt-dlp or Deno binary is incompatible with this runtime.";
+  }
+
+  if (combinedMessage.includes("not found")) {
+    return "yt-dlp runtime is missing or not executable.";
+  }
+
+  const hitBotChallenge =
+    combinedMessage.includes("sign in to confirm you're not a bot") ||
+    (combinedMessage.includes("--cookies-from-browser") &&
+      combinedMessage.includes("--cookies")) ||
+    combinedMessage.includes("cookies for the authentication");
+
+  if (hitBotChallenge) {
+    if (hasCookieConfig) {
+      return "YouTube rejected the configured yt-dlp cookies. Refresh the cookie export and try again.";
+    }
+
+    return "YouTube asked for bot verification. Configure YT_DLP_COOKIES_PATH or YT_DLP_COOKIES_FROM_BROWSER on the server for authenticated yt-dlp playback.";
+  }
+
+  return stderr.trim()
+    ? `yt-dlp failed to resolve this URL: ${stderr.trim()}`
+    : "yt-dlp failed to resolve this URL.";
 }
 
 function cleanupExpiredCache() {
@@ -480,6 +557,18 @@ async function runYtDlp(value: string) {
   const ytDlpPath = resolveYtDlpPath();
   const denoPath = resolveDenoPath();
   const denoDir = path.dirname(denoPath);
+  const serverEnv = getServerEnv();
+  const cookieArgs = buildYtDlpCookieArgs(serverEnv);
+
+  if (serverEnv.YT_DLP_COOKIES_PATH.trim()) {
+    const cookiesPath = resolveConfiguredCookiesPath(serverEnv.YT_DLP_COOKIES_PATH);
+    if (!existsSync(cookiesPath)) {
+      throw new Error(
+        `YT_DLP_COOKIES_PATH points to a missing file: ${cookiesPath}`,
+      );
+    }
+  }
+
   const env = {
     ...process.env,
     DENO_PATH: denoPath,
@@ -500,6 +589,7 @@ async function runYtDlp(value: string) {
         "1",
         "--retries",
         "1",
+        ...cookieArgs,
         "--",
         value,
       ],
@@ -525,30 +615,8 @@ async function runYtDlp(value: string) {
       typeof error === "object" && error && "message" in error
         ? String((error as { message?: string }).message || "")
         : "yt-dlp failed";
-    const combinedMessage = `${message}\n${stderr}`.toLowerCase();
-
-    if (combinedMessage.includes("timed out")) {
-      throw new Error("yt-dlp timed out while resolving the media URL.");
-    }
-
-    if (combinedMessage.includes("deno")) {
-      throw new Error(
-        "Deno runtime is missing or incompatible for the official yt-dlp resolver.",
-      );
-    }
-
-    if (combinedMessage.includes("exec format error")) {
-      throw new Error("yt-dlp or Deno binary is incompatible with this runtime.");
-    }
-
-    if (combinedMessage.includes("not found")) {
-      throw new Error("yt-dlp runtime is missing or not executable.");
-    }
-
     throw new Error(
-      stderr.trim()
-        ? `yt-dlp failed to resolve this URL: ${stderr.trim()}`
-        : "yt-dlp failed to resolve this URL.",
+      mapYtDlpFailureMessage(message, stderr, hasYtDlpCookieConfig(serverEnv)),
     );
   }
 }
@@ -777,10 +845,18 @@ export async function resolveMediaSource(
   const providerLabel = providerLabelForHost(providerHost);
   const ytDlpResolver = deps.resolveWithYtDlp ?? resolveWithYtDlp;
   const pageExtractor = deps.extractMediaFromPage ?? extractMediaFromPage;
+  let ytDlpError: Error | null = null;
 
-  const ytDlpMedia = await ytDlpResolver(trimmed);
-  if (ytDlpMedia) {
-    return ytDlpMedia;
+  try {
+    const ytDlpMedia = await ytDlpResolver(trimmed);
+    if (ytDlpMedia) {
+      return ytDlpMedia;
+    }
+  } catch (error) {
+    ytDlpError =
+      error instanceof Error
+        ? error
+        : new Error("yt-dlp failed to resolve this URL.");
   }
 
   if (direct) {
@@ -802,6 +878,10 @@ export async function resolveMediaSource(
   const extracted = await pageExtractor(trimmed, providerLabel);
   if (extracted) {
     return extracted;
+  }
+
+  if (ytDlpError) {
+    throw ytDlpError;
   }
 
   return null;

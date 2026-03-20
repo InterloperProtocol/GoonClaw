@@ -50,6 +50,8 @@ const rawServerEnvSchema = z.object({
   LIVESTREAM_REQUESTER_COOLDOWN_SECONDS: z.string().optional(),
   LIVESTREAM_CONTRACT_COOLDOWN_SECONDS: z.string().optional(),
   LIVESTREAM_MAX_QUEUE_LENGTH: z.string().optional(),
+  YT_DLP_COOKIES_PATH: z.string().optional(),
+  YT_DLP_COOKIES_FROM_BROWSER: z.string().optional(),
 });
 
 const resolvedServerEnvSchema = z.object({
@@ -92,6 +94,8 @@ const resolvedServerEnvSchema = z.object({
   LIVESTREAM_REQUESTER_COOLDOWN_SECONDS: z.string().min(1),
   LIVESTREAM_CONTRACT_COOLDOWN_SECONDS: z.string().min(1),
   LIVESTREAM_MAX_QUEUE_LENGTH: z.string().min(1),
+  YT_DLP_COOKIES_PATH: z.string(),
+  YT_DLP_COOKIES_FROM_BROWSER: z.string(),
 });
 
 const rawPublicEnvSchema = z.object({
@@ -310,6 +314,9 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
       raw.LIVESTREAM_CONTRACT_COOLDOWN_SECONDS?.trim() || "600",
     LIVESTREAM_MAX_QUEUE_LENGTH:
       raw.LIVESTREAM_MAX_QUEUE_LENGTH?.trim() || "25",
+    YT_DLP_COOKIES_PATH: raw.YT_DLP_COOKIES_PATH?.trim() || "",
+    YT_DLP_COOKIES_FROM_BROWSER:
+      raw.YT_DLP_COOKIES_FROM_BROWSER?.trim() || "",
   });
 }
 

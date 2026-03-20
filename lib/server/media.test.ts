@@ -1,7 +1,11 @@
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
+  buildYtDlpCookieArgs,
   buildKnownMediaConfig,
+  mapYtDlpFailureMessage,
   normalizeYtDlpMedia,
   resolveMediaSource,
 } from "@/lib/server/media";
@@ -163,6 +167,28 @@ describe("media source resolver", () => {
     });
   });
 
+  it("falls back to the YouTube embed when yt-dlp hits the bot check", async () => {
+    await expect(
+      resolveMediaSource(
+        "https://www.youtube.com/watch?v=FKXWo-PNmCc",
+        "localhost",
+        {
+          resolveWithYtDlp: async () => {
+            throw new Error(
+              "YouTube asked for bot verification. Configure YT_DLP_COOKIES_PATH or YT_DLP_COOKIES_FROM_BROWSER on the server for authenticated yt-dlp playback.",
+            );
+          },
+          extractMediaFromPage: async () => null,
+        },
+      ),
+    ).resolves.toEqual({
+      kind: "iframe",
+      src: "https://www.youtube.com/embed/FKXWo-PNmCc",
+      provider: "YouTube",
+      method: "embed",
+    });
+  });
+
   it("returns null for unsupported URLs when yt-dlp and fallback extraction both fail", async () => {
     await expect(
       resolveMediaSource("https://example.com/no-player-here", "localhost", {
@@ -170,5 +196,38 @@ describe("media source resolver", () => {
         extractMediaFromPage: async () => null,
       }),
     ).resolves.toBeNull();
+  });
+
+  it("builds yt-dlp cookie args from a cookie file path", () => {
+    expect(
+      buildYtDlpCookieArgs({
+        YT_DLP_COOKIES_PATH: ".secrets/youtube.cookies.txt",
+        YT_DLP_COOKIES_FROM_BROWSER: "",
+      }),
+    ).toEqual([
+      "--cookies",
+      path.resolve(".secrets/youtube.cookies.txt"),
+    ]);
+  });
+
+  it("builds yt-dlp cookie args from a browser source when no cookie file is set", () => {
+    expect(
+      buildYtDlpCookieArgs({
+        YT_DLP_COOKIES_PATH: "",
+        YT_DLP_COOKIES_FROM_BROWSER: "chrome:Default",
+      }),
+    ).toEqual(["--cookies-from-browser", "chrome:Default"]);
+  });
+
+  it("maps YouTube bot checks to a cleaner cookie guidance message", () => {
+    expect(
+      mapYtDlpFailureMessage(
+        "ERROR",
+        "[youtube] FKXWo-PNmCc: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication.",
+        false,
+      ),
+    ).toBe(
+      "YouTube asked for bot verification. Configure YT_DLP_COOKIES_PATH or YT_DLP_COOKIES_FROM_BROWSER on the server for authenticated yt-dlp playback.",
+    );
   });
 });
