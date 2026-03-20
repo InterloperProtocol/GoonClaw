@@ -1,91 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type EmbedConfig =
+import { StatusBadge } from "@/components/ui/StatusBadge";
+
+type ResolvedMedia =
   | {
       kind: "video";
       src: string;
       streamType: "file" | "hls";
+      provider: string;
+      method: "direct" | "extracted" | "yt-dlp";
     }
   | {
       kind: "iframe";
       src: string;
+      provider: string;
+      method: "embed" | "extracted";
     };
 
-function extractYouTubeId(url: URL) {
-  if (url.hostname.includes("youtu.be")) {
-    return url.pathname.split("/").filter(Boolean)[0] ?? "";
-  }
+type MediaHistory = Record<string, string[]>;
 
-  if (url.pathname.startsWith("/shorts/")) {
-    return url.pathname.split("/")[2] ?? "";
-  }
-
-  return url.searchParams.get("v") ?? "";
+function normalizeProviderKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
-function buildEmbedConfig(value: string, parentHost: string): EmbedConfig | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  try {
-    const url = new URL(trimmed);
-    const lowerHost = url.hostname.toLowerCase();
-
-    if (lowerHost.includes("youtube.com") || lowerHost.includes("youtu.be")) {
-      const id = extractYouTubeId(url);
-      return id
-        ? {
-            kind: "iframe" as const,
-            src: `https://www.youtube.com/embed/${id}`,
-          }
-        : null;
-    }
-
-    if (lowerHost.includes("vimeo.com")) {
-      const id = url.pathname.split("/").filter(Boolean).pop();
-      return id
-        ? {
-            kind: "iframe" as const,
-            src: `https://player.vimeo.com/video/${id}`,
-          }
-        : null;
-    }
-
-    if (lowerHost.includes("twitch.tv")) {
-      const parts = url.pathname.split("/").filter(Boolean);
-      if (parts[0] === "videos" && parts[1]) {
-        return {
-          kind: "iframe",
-          src: `https://player.twitch.tv/?video=v${parts[1]}&parent=${parentHost}`,
-        };
-      }
-
-      if (parts[0]) {
-        return {
-          kind: "iframe",
-          src: `https://player.twitch.tv/?channel=${parts[0]}&parent=${parentHost}`,
-        };
-      }
-    }
-
-    if (/\.(mp4|webm|ogg|mov|m3u8)(\?|$)/i.test(url.pathname)) {
-      const streamType = /\.m3u8(\?|$)/i.test(url.pathname) ? "hls" : "file";
-      return {
-        kind: "video" as const,
-        src: url.toString(),
-        streamType,
-      };
-    }
-
-    return {
-      kind: "iframe" as const,
-      src: url.toString(),
-    };
-  } catch {
-    return null;
+function getMethodLabel(method: ResolvedMedia["method"]) {
+  switch (method) {
+    case "direct":
+      return "Direct video";
+    case "yt-dlp":
+      return "Optimized playback";
+    case "embed":
+      return "Embedded player";
+    case "extracted":
+      return "Playable source";
   }
+}
+
+function getFormatLabel(resolved: ResolvedMedia) {
+  if (resolved.kind === "iframe") {
+    return "Web player";
+  }
+
+  return resolved.streamType === "hls" ? "Live stream" : "Video file";
 }
 
 export function MediaEmbedPanel({
@@ -106,7 +64,41 @@ export function MediaEmbedPanel({
   const [draftUrl, setDraftUrl] = useState(defaultUrl);
   const [activeUrl, setActiveUrl] = useState(defaultUrl);
   const [parentHost, setParentHost] = useState("localhost");
+  const [resolved, setResolved] = useState<ResolvedMedia | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [providerHistoryCount, setProviderHistoryCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const historyStorageKey = `${storageKey}:history`;
+
+  const readHistory = useCallback((): MediaHistory => {
+    if (typeof window === "undefined") {
+      return {};
+    }
+
+    try {
+      const raw = window.localStorage.getItem(historyStorageKey);
+      if (!raw) {
+        return {};
+      }
+
+      const parsed = JSON.parse(raw) as MediaHistory;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }, [historyStorageKey]);
+
+  const writeHistory = useCallback(
+    (nextHistory: MediaHistory) => {
+      if (typeof window === "undefined" || readOnly) {
+        return;
+      }
+
+      window.localStorage.setItem(historyStorageKey, JSON.stringify(nextHistory));
+    },
+    [historyStorageKey, readOnly],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -125,13 +117,84 @@ export function MediaEmbedPanel({
     setActiveUrl(next);
   }, [defaultUrl, readOnly, storageKey]);
 
-  const embed = useMemo(
-    () => buildEmbedConfig(activeUrl, parentHost),
-    [activeUrl, parentHost],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    const trimmedUrl = activeUrl.trim();
+
+    if (!trimmedUrl) {
+      setResolved(null);
+      setResolveError(null);
+      setResolving(false);
+      return;
+    }
+
+    async function resolve() {
+      setResolving(true);
+      setResolveError(null);
+
+      try {
+        const response = await fetch(
+          `/api/media/resolve?url=${encodeURIComponent(trimmedUrl)}&parentHost=${encodeURIComponent(parentHost)}`,
+        );
+        const payload = (await response.json()) as
+          | ResolvedMedia
+          | {
+              error?: string;
+            };
+
+        if (!response.ok) {
+          throw new Error(
+            "error" in payload ? payload.error || "Failed to resolve media" : "Failed to resolve media",
+          );
+        }
+
+        if (!cancelled && "kind" in payload) {
+          setResolved(payload as ResolvedMedia);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setResolved(null);
+          setResolveError(
+            error instanceof Error ? error.message : "Failed to resolve media",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setResolving(false);
+        }
+      }
+    }
+
+    void resolve();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeUrl, parentHost]);
 
   useEffect(() => {
-    if (!embed || embed.kind !== "video" || embed.streamType !== "hls") {
+    if (typeof window === "undefined" || readOnly || !resolved || !activeUrl.trim()) {
+      setProviderHistoryCount(0);
+      return;
+    }
+
+    const providerKey = normalizeProviderKey(resolved.provider);
+    const history = readHistory();
+    const providerHistory = history[providerKey] ?? [];
+    const nextProviderHistory = [
+      activeUrl.trim(),
+      ...providerHistory.filter((item) => item !== activeUrl.trim()),
+    ].slice(0, 24);
+
+    writeHistory({
+      ...history,
+      [providerKey]: nextProviderHistory,
+    });
+    setProviderHistoryCount(nextProviderHistory.length);
+  }, [activeUrl, readHistory, readOnly, resolved, writeHistory]);
+
+  useEffect(() => {
+    if (!resolved || resolved.kind !== "video" || resolved.streamType !== "hls") {
       return;
     }
 
@@ -139,7 +202,7 @@ export function MediaEmbedPanel({
       return;
     }
     const currentVideo = videoRef.current;
-    const embedSrc = embed.src;
+    const embedSrc = resolved.src;
 
     let disposed = false;
     let cleanup: (() => void) | undefined;
@@ -175,20 +238,78 @@ export function MediaEmbedPanel({
       disposed = true;
       cleanup?.();
     };
-  }, [embed]);
+  }, [resolved]);
+
+  const statusBadges = useMemo(() => {
+    if (resolving) {
+      return [
+        <StatusBadge key="status" tone="accent">
+          Resolving source
+        </StatusBadge>,
+      ];
+    }
+
+    if (!resolved) {
+      return [];
+    }
+
+    return [
+      <StatusBadge key="provider" tone="accent">
+        {resolved.provider}
+      </StatusBadge>,
+      <StatusBadge key="method" tone="neutral">
+        {getMethodLabel(resolved.method)}
+      </StatusBadge>,
+      <StatusBadge key="format" tone="success">
+        {getFormatLabel(resolved)}
+      </StatusBadge>,
+    ];
+  }, [resolved, resolving]);
 
   function applyUrl() {
-    setActiveUrl(draftUrl.trim());
+    const nextUrl = draftUrl.trim();
+    setResolveError(null);
+    setActiveUrl(nextUrl);
     if (typeof window !== "undefined" && !readOnly) {
-      window.localStorage.setItem(storageKey, draftUrl.trim());
+      window.localStorage.setItem(storageKey, nextUrl);
     }
   }
 
   function clearUrl() {
     setDraftUrl("");
     setActiveUrl("");
+    setResolved(null);
+    setResolveError(null);
+    setProviderHistoryCount(0);
     if (typeof window !== "undefined" && !readOnly) {
       window.localStorage.removeItem(storageKey);
+    }
+  }
+
+  function playRandomFromProvider() {
+    if (!resolved) {
+      return;
+    }
+
+    const providerKey = normalizeProviderKey(resolved.provider);
+    const history = readHistory();
+    const choices = (history[providerKey] ?? []).filter(
+      (item) => item !== activeUrl.trim(),
+    );
+
+    if (!choices.length) {
+      setResolveError(
+        `Add more ${resolved.provider} links first, then randomize within that platform.`,
+      );
+      return;
+    }
+
+    const nextUrl = choices[Math.floor(Math.random() * choices.length)];
+    setResolveError(null);
+    setDraftUrl(nextUrl);
+    setActiveUrl(nextUrl);
+    if (typeof window !== "undefined" && !readOnly) {
+      window.localStorage.setItem(storageKey, nextUrl);
     }
   }
 
@@ -199,6 +320,12 @@ export function MediaEmbedPanel({
           <p className="eyebrow">{eyebrow}</p>
           <h2>{title}</h2>
         </div>
+        <div className="source-pill">
+          <span className="status-dot" />
+          {resolving
+            ? "Resolving"
+            : resolved?.provider || (activeUrl.trim() ? "Queued" : "No source")}
+        </div>
       </div>
 
       {description ? <p className="hero-summary compact">{description}</p> : null}
@@ -206,16 +333,35 @@ export function MediaEmbedPanel({
       {!readOnly ? (
         <div className="media-toolbar">
           <label className="field">
-            <span>Video or stream URL</span>
+            <span>Video or stream link</span>
             <input
               value={draftUrl}
               onChange={(event) => setDraftUrl(event.target.value)}
-              placeholder="Paste YouTube, Twitch, Vimeo, MP4, HLS, or iframe-ready URL"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyUrl();
+                }
+              }}
+              placeholder="Paste a YouTube, Twitch, Vimeo, or direct video link"
             />
           </label>
+          <p className="inline-note">
+            Paste a link and we&apos;ll try to load the cleanest playable version
+            available. Random playback cycles through links you&apos;ve already
+            opened from the same provider.
+          </p>
           <div className="button-row">
             <button className="button button-primary small" onClick={applyUrl} type="button">
-              Load Media
+              Load video
+            </button>
+            <button
+              className="button button-secondary small"
+              disabled={!resolved || providerHistoryCount < 2}
+              onClick={playRandomFromProvider}
+              type="button"
+            >
+              {resolved ? `Play random ${resolved.provider}` : "Play random media"}
             </button>
             <button className="button button-ghost small" onClick={clearUrl} type="button">
               Clear
@@ -224,34 +370,43 @@ export function MediaEmbedPanel({
         </div>
       ) : null}
 
-      {embed ? (
-        embed.kind === "video" ? (
+      {statusBadges.length ? <div className="route-badges">{statusBadges}</div> : null}
+      {resolveError ? <p className="error-banner">{resolveError}</p> : null}
+
+      {resolved ? (
+        resolved.kind === "video" ? (
           <div className="embed-shell">
             <video
+              key={resolved.src}
               className="media-video"
               controls
               playsInline
               ref={videoRef}
-              src={embed.streamType === "file" ? embed.src : undefined}
+              src={resolved.streamType === "file" ? resolved.src : undefined}
             />
           </div>
         ) : (
           <div className="embed-shell">
             <iframe
-              src={embed.src}
+              key={resolved.src}
+              src={resolved.src}
               className="embed-frame"
+              title={`${resolved.provider} embed`}
               allowFullScreen
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             />
           </div>
         )
+      ) : resolving ? (
+        <div className="embed-placeholder">
+          <strong>Finding the best way to play this link.</strong>
+          <p>We&apos;re checking for the cleanest playable source.</p>
+        </div>
       ) : (
         <div className="embed-placeholder">
           <strong>No media source loaded yet.</strong>
           <p>
-            Paste any direct video file or stream/embed URL. Some third-party
-            sites may block iframing, but YouTube, Twitch, Vimeo, and direct
-            video files should work cleanly.
+            Paste a video or stream link to start watching here.
           </p>
         </div>
       )}

@@ -149,7 +149,7 @@ export async function claimEligibilitySubscriptionCnft(wallet: string) {
 
   const evaluation = await getLaunchonomicsEvaluation(wallet);
   if (evaluation.tier === "none") {
-    throw new Error("Wallet is not eligible for a subscription cNFT");
+    throw new Error("This wallet is not eligible for a subscription pass");
   }
 
   const mintResult = await mintAccessCnft(wallet);
@@ -158,7 +158,7 @@ export async function claimEligibilitySubscriptionCnft(wallet: string) {
     "cnft",
     `launchonomics:${evaluation.tier}:${evaluation.launchAt}`,
     mintResult.signature,
-    `Manual LaunchONomics subscription claim for ${evaluation.tier} tier`,
+    `LaunchONomics subscription pass for ${evaluation.tier} tier`,
   );
   await upsertEntitlement(entitlement);
   return entitlement;

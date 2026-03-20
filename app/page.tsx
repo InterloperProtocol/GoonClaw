@@ -23,23 +23,21 @@ export default function Home() {
       <SiteNav />
 
       <RouteHeader
-        eyebrow="Surface Map"
-        title="Retro shell, modern ergonomics."
+        eyebrow="Welcome"
+        title="Everything you need to run the show."
         summary={
           <>
-            GoonClaw is a control network with distinct jobs: private operator
-            work on <strong>/goonclaw</strong>, public trust and queue flow on
-            <strong> /livestream</strong>, fast wallet review on
-            <strong> /eligibility</strong>, and readiness diagnostics on
-            <strong> /agent</strong>. Guest access stays open until{" "}
+            GoonClaw brings together personal control, live queue management,
+            wallet access checks, and behind-the-scenes platform status in one
+            dashboard. Guest access stays open until{" "}
             {freeUntilLabel}.
           </>
         }
         badges={[
-          "Start from the user job",
-          "Status visible at all times",
-          "Consistent console patterns",
-          "Accessibility built in",
+          "Fast to scan",
+          "Live market context",
+          "Simple request flow",
+          "Clear wallet access",
         ]}
         actions={
           <div className="button-row">
@@ -50,7 +48,7 @@ export default function Home() {
               Open Livestream
             </Link>
             <Link className="button button-ghost" href="/eligibility">
-              Check Eligibility
+              Check Access
             </Link>
           </div>
         }
@@ -59,12 +57,12 @@ export default function Home() {
             <div className="rail-card">
               <p className="eyebrow">Default token</p>
               <strong>{config.NEXT_PUBLIC_ACCESS_TOKEN_SYMBOL}</strong>
-              <span>Shared across chart, stream, and eligibility surfaces.</span>
+              <span>Used across the chart, live room, and wallet access pages.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Support</p>
+              <p className="eyebrow">Works with</p>
               <strong>Autoblow / Handy / REST</strong>
-              <span>Operator controls stay explicit and text-labeled.</span>
+              <span>Flexible device support for personal sessions.</span>
             </div>
           </div>
         }
@@ -72,49 +70,49 @@ export default function Home() {
 
       <section className="surface-grid">
         <section className="surface-card">
-          <p className="eyebrow">Private operator</p>
+          <p className="eyebrow">Personal</p>
           <h2>/goonclaw</h2>
-          <p>Dense personal console for chart sync, media monitoring, and direct device control.</p>
+          <p>Track the market, keep a video window nearby, and run your saved setup in one place.</p>
           <div className="surface-card-footer">
-            <StatusBadge tone="success">Operator surface</StatusBadge>
+            <StatusBadge tone="success">Personal dashboard</StatusBadge>
             <Link className="surface-card-link" href="/goonclaw">
-              Enter console
+              Open dashboard
             </Link>
           </div>
         </section>
 
         <section className="surface-card">
-          <p className="eyebrow">Public room</p>
+          <p className="eyebrow">Livestream</p>
           <h2>/livestream</h2>
-          <p>Trust-first queue and payment surface with live status, stream context, and request visibility.</p>
+          <p>Show what&apos;s live, collect paid requests, and keep the queue easy for viewers to understand.</p>
           <div className="surface-card-footer">
-            <StatusBadge tone="accent">Queue surface</StatusBadge>
+            <StatusBadge tone="accent">Public experience</StatusBadge>
             <Link className="surface-card-link" href="/livestream">
-              Open public room
+              Open live room
             </Link>
           </div>
         </section>
 
         <section className="surface-card">
-          <p className="eyebrow">Verification</p>
+          <p className="eyebrow">Wallet access</p>
           <h2>/eligibility</h2>
-          <p>Single-purpose manual claim flow for checking a wallet and issuing the subscription cNFT.</p>
+          <p>Check a Solana wallet and instantly see whether it qualifies for subscription access.</p>
           <div className="surface-card-footer">
-            <StatusBadge tone="warning">Manual review</StatusBadge>
+            <StatusBadge tone="warning">Fast lookup</StatusBadge>
             <Link className="surface-card-link" href="/eligibility">
-              Review wallet
+              Check wallet
             </Link>
           </div>
         </section>
 
         <section className="surface-card">
-          <p className="eyebrow">Diagnostics</p>
+          <p className="eyebrow">Platform status</p>
           <h2>/agent</h2>
-          <p>Readiness, reference stack, model state, and policy visibility for the hosted agent side.</p>
+          <p>See how payments, access delivery, AI features, and supporting services are doing behind the scenes.</p>
           <div className="surface-card-footer">
-            <StatusBadge tone="neutral">Audit trail</StatusBadge>
+            <StatusBadge tone="neutral">System health</StatusBadge>
             <Link className="surface-card-link" href="/agent">
-              View diagnostics
+              View status
             </Link>
           </div>
         </section>
@@ -129,19 +127,19 @@ export default function Home() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Operating model</p>
-                <h2>Use the right density for the job</h2>
+                <p className="eyebrow">How it fits together</p>
+                <h2>Built for quick decisions</h2>
               </div>
             </div>
             <p className="hero-summary">
-              Personal is the dense operator console. Livestream is the public
-              queue room. Eligibility stays focused on a single decision.
-              Agent surfaces prioritize readiness and auditability over control.
+              Use Personal for your own setup, Livestream for public queue flow,
+              Wallet Access for quick yes-or-no checks, and Status when you want
+              to confirm the foundation is ready.
             </p>
             <div className="route-badges">
-              <StatusBadge tone="accent">Status first</StatusBadge>
-              <StatusBadge tone="neutral">Recognition over recall</StatusBadge>
-              <StatusBadge tone="success">Keyboard-safe</StatusBadge>
+              <StatusBadge tone="accent">Clear at a glance</StatusBadge>
+              <StatusBadge tone="neutral">Live updates</StatusBadge>
+              <StatusBadge tone="success">Made to feel simple</StatusBadge>
             </div>
           </section>
         </div>

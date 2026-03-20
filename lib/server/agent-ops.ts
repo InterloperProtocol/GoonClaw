@@ -63,51 +63,51 @@ function buildReferences(versions: {
       id: "openclaw",
       label: "OpenClaw",
       ready: hasReferenceDocs,
-      note: "OpenClaw is tracked as a build-time reference, not a runtime dependency.",
+      note: "Tracked in the project docs as a product reference.",
     },
     {
       id: "pump-sdk",
       label: "Pump SDK",
       ready: versions.pumpSdk !== "missing",
-      note: `Using ${versions.pumpSdk}.`,
+      note: `Using ${versions.pumpSdk} in the current build.`,
     },
     {
       id: "agent-payments",
-      label: "Agent Payments SDK",
+      label: "Agent payments",
       ready: versions.agentPaymentsSdk !== "missing",
-      note: `Using ${versions.agentPaymentsSdk} for invoice-ready tokenized-agent flows.`,
+      note: `Using ${versions.agentPaymentsSdk} for payment verification and paid agent flows.`,
     },
     {
       id: "google-genai-sdk",
-      label: "Google Gen AI SDK",
+      label: "Google Gen AI",
       ready: versions.googleGenAiSdk !== "missing",
-      note: `Using ${versions.googleGenAiSdk} for the Vertex AI Gemini runtime.`,
+      note: `Using ${versions.googleGenAiSdk} for Vertex AI Gemini features.`,
     },
     {
       id: "pump-tokenized-agents-skill",
-      label: "Pump tokenized-agents skill",
+      label: "Tokenized agent tools",
       ready:
         existsSync(path.join(codexHome, "skills", "tokenized-agents")) ||
         versions.agentPaymentsSdk !== "missing",
-      note: "Implemented through the Pump agent-payments SDK and compatible skill workflow.",
+      note: "Covered by the current agent-payments setup and tooling workflow.",
     },
     {
       id: "free-crypto-news",
       label: "Free Crypto News",
       ready: true,
-      note: "The in-app news panel is wired directly to cryptocurrency.cv.",
+      note: "Feeds the in-app market news mix.",
     },
     {
       id: "launchpad-ui",
       label: "Solana Launchpad UI",
       ready: hasReferenceDocs,
-      note: "The GoonClaw surfaces already bake in the launchpad-inspired theme direction.",
+      note: "Inspires parts of the current product look and feel.",
     },
     {
       id: "auditkit",
       label: "AuditKit",
       ready: hasReferenceDocs,
-      note: "AuditKit is tracked as a hardening reference in the repo docs.",
+      note: "Tracked in the docs as part of the hardening checklist.",
     },
   ];
 }

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as { signature?: string };
   if (!body.signature) {
-    return NextResponse.json({ error: "signature is required" }, { status: 400 });
+    return NextResponse.json({ error: "Signature is required" }, { status: 400 });
   }
 
   const existing = await getOrder(body.signature);
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       {
         error:
           existing.error ||
-          "This payment was already processed and needs manual review",
+          "This payment was already processed and needs a quick review",
       },
       { status: 409 },
     );
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, entitlement });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to mint cNFT" },
+      { error: error instanceof Error ? error.message : "Couldn't send the access pass" },
       { status: 400 },
     );
   }

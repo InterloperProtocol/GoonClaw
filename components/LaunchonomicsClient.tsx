@@ -132,24 +132,24 @@ export function LaunchonomicsClient({
       });
       const payload = (await response.json()) as ClaimResponse;
       if (!response.ok) {
-        throw new Error(payload.error || "Failed to mint the subscription cNFT");
+        throw new Error(payload.error || "Couldn't send the subscription pass");
       }
 
       if (payload.reused) {
         if (payload.entitlement?.type === "burn") {
-          setNotice("This wallet already has an active burn-based entitlement.");
+          setNotice("This wallet already has an active burn-based access record.");
         } else {
-          setNotice("This wallet already has a subscription cNFT claim on record.");
+          setNotice("This wallet already has a subscription pass on record.");
         }
         return;
       }
 
-      setNotice("Subscription cNFT minted to the eligible wallet.");
+      setNotice("Subscription pass sent to the eligible wallet.");
     } catch (claimError) {
       setError(
         claimError instanceof Error
           ? claimError.message
-          : "Failed to mint the subscription cNFT",
+          : "Couldn't send the subscription pass",
       );
     } finally {
       setClaiming(false);
@@ -171,31 +171,31 @@ export function LaunchonomicsClient({
       <SiteNav />
 
       <RouteHeader
-        eyebrow="Eligibility"
-        title="Check a wallet, then decide the next action."
+        eyebrow="Wallet access"
+        title="Check a wallet and see what it unlocks."
         summary={
           <>
-            This route is intentionally narrow: enter a wallet, evaluate the
-            LaunchONomics outcome for {accessTokenSymbol}, and only then click
-            <strong> Receive subscription cNFT</strong> if the wallet qualifies.
+            Paste a Solana wallet to review its LaunchONomics result for{" "}
+            {accessTokenSymbol}. If it qualifies, you can send the subscription
+            pass from the same page.
           </>
         }
         badges={[
-          "Single-purpose flow",
-          "Manual subscription claims",
+          "Quick wallet lookup",
           "No wallet connect required",
+          "One-screen result",
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
-              <p className="eyebrow">Guest window</p>
+              <p className="eyebrow">Open access ends</p>
               <strong>{freeUntilLabel}</strong>
-              <span>Open access before the gated review flow begins.</span>
+              <span>Guest access stays open until this date.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Launch start</p>
+              <p className="eyebrow">Launch window starts</p>
               <strong>{launchAt ? launchAtLabel : "Awaiting config"}</strong>
-              <span>Set the launch timestamp to activate the reward windows.</span>
+              <span>This timing powers the access windows below.</span>
             </div>
           </div>
         }
@@ -209,8 +209,8 @@ export function LaunchonomicsClient({
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Wallet Check</p>
-                <h2>Evaluate subscription eligibility</h2>
+                <p className="eyebrow">Wallet lookup</p>
+                <h2>Check subscription access</h2>
               </div>
             </div>
 
@@ -229,7 +229,7 @@ export function LaunchonomicsClient({
                 disabled={loading || !wallet.trim()}
                 onClick={() => void lookup()}
               >
-                {loading ? "Checking..." : "Check eligibility"}
+                {loading ? "Checking..." : "Check wallet"}
               </button>
             </div>
           </section>
@@ -237,8 +237,8 @@ export function LaunchonomicsClient({
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Windows</p>
-                <h2>Reward map</h2>
+                <p className="eyebrow">Access windows</p>
+                <h2>Launch timeline</h2>
               </div>
             </div>
 
@@ -300,7 +300,7 @@ export function LaunchonomicsClient({
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Result</p>
-                <h2>Eligibility status</h2>
+                <h2>Wallet result</h2>
               </div>
             </div>
 
@@ -366,22 +366,22 @@ export function LaunchonomicsClient({
                     disabled={!canClaim || claiming}
                     onClick={() => void claimSubscriptionCnft()}
                   >
-                    {claiming ? "Minting..." : "Receive subscription cNFT"}
+                    {claiming ? "Sending..." : "Send subscription pass"}
                   </button>
                 </div>
 
                 {!canClaim ? (
                   <p className="empty-state">
-                    This wallet does not qualify for a subscription cNFT right now.
+                    This wallet does not qualify for a subscription pass right now.
                   </p>
                 ) : (
                   <p className="empty-state">
-                    Manual flow: the cNFT is only sent after this button is clicked.
+                    This wallet is ready. Send the subscription pass whenever you&apos;re ready.
                   </p>
                 )}
                 <div className="route-badges">
                   <StatusBadge tone={canClaim ? "success" : "warning"}>
-                    {canClaim ? "Claim available" : "No active entitlement"}
+                    {canClaim ? "Access ready" : "No active access"}
                   </StatusBadge>
                   <StatusBadge tone="neutral">
                     {result.badge === "none" ? "No badge" : `${result.badge} badge`}
@@ -390,8 +390,8 @@ export function LaunchonomicsClient({
               </>
             ) : (
               <p className="empty-state">
-                No wallet checked yet. Paste an address to review its LaunchONomics
-                tier and manually send the subscription cNFT if it qualifies.
+                Paste a wallet to see its LaunchONomics tier, launch timing, and
+                access details.
               </p>
             )}
           </section>

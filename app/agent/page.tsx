@@ -12,51 +12,49 @@ export default function AgentPage() {
       <SiteNav />
 
       <RouteHeader
-        eyebrow="Agent diagnostics"
-        title="Readiness, claims, and runtime state."
+        eyebrow="Platform status"
+        title="A clear view of what powers GoonClaw."
         summary={
           <>
-            This route is the audit surface for the hosted agent side of
-            GoonClaw: manual cNFT claims, buyback policy, Vertex runtime
-            readiness, payment wiring, and the current reference stack. It is
-            intentionally status-heavy and explanatory rather than action-heavy.
+            This page keeps the behind-the-scenes essentials in one place, from
+            access delivery and payments to AI services and supporting tools.
           </>
         }
         badges={[
           <StatusBadge key="health" tone="success">
-            Health and readiness
+            Service health
           </StatusBadge>,
           <StatusBadge key="audit" tone="neutral">
-            Audit trail
+            Payments
           </StatusBadge>,
           <StatusBadge key="manual" tone="warning">
-            Manual claim flow
+            Access delivery
           </StatusBadge>,
           <StatusBadge key="runtime" tone="accent">
-            Vertex runtime
+            AI services
           </StatusBadge>,
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
-              <p className="eyebrow">Claim mode</p>
-              <strong>Manual receive</strong>
-              <span>Eligibility first, operator confirmation second.</span>
+              <p className="eyebrow">Access delivery</p>
+              <strong>Sent after review</strong>
+              <span>Wallet access is checked before a pass is delivered.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Polling</p>
+              <p className="eyebrow">Refresh</p>
               <strong>30 second cadence</strong>
-              <span>Runtime and payment readiness stay visible without refresh.</span>
+              <span>Platform health stays current without reloading the page.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Runtime</p>
+              <p className="eyebrow">AI features</p>
               <strong>Vertex AI Gemini</strong>
-              <span>Hosted model status belongs here, not on public control routes.</span>
+              <span>AI service readiness is tracked here in one place.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Purpose</p>
-              <strong>Readiness + policy</strong>
-              <span>Diagnostics, references, and explanations in one separate page.</span>
+              <strong>Behind-the-scenes clarity</strong>
+              <span>Payments, tools, and platform status without the guesswork.</span>
             </div>
           </div>
         }

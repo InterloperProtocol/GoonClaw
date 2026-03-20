@@ -20,20 +20,19 @@ export function HomeEligibilityCta() {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Manual claim lane</p>
-          <h2>Start with wallet verification</h2>
+          <p className="eyebrow">Quick start</p>
+          <h2>Check a wallet in seconds</h2>
         </div>
       </div>
       <p className="panel-lead">
-        Paste a Solana wallet to jump directly into the focused eligibility
-        flow. The next screen keeps validation, result state, and the manual
-        receive action in one place.
+        Paste a Solana wallet to open the access checker with the address
+        already filled in, then review the result on the next screen.
       </p>
 
       <div className="route-badges">
-        <StatusBadge tone="warning">Manual review</StatusBadge>
+        <StatusBadge tone="warning">Fast lookup</StatusBadge>
         <StatusBadge tone="neutral">No wallet connect required</StatusBadge>
-        <StatusBadge tone="accent">Prefilled deep link</StatusBadge>
+        <StatusBadge tone="accent">Prefilled link</StatusBadge>
       </div>
 
       <label className="field">
@@ -44,7 +43,7 @@ export function HomeEligibilityCta() {
           placeholder="Paste a Solana wallet"
         />
       </label>
-      <p className="inline-note">Paste once. Review on the dedicated eligibility surface.</p>
+      <p className="inline-note">You can review the result and send access from the next page.</p>
 
       <div className="button-row">
         <button

@@ -146,17 +146,17 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || "Failed to save device");
+        throw new Error(payload.error || "Couldn't save setup");
       }
 
       setDeviceForm(initialDeviceState);
-      setNotice("Device saved. It is ready for direct GoonClaw control.");
+      setNotice("Setup saved and ready to use.");
       await refreshDevices();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to save device",
+          : "Couldn't save setup",
       );
     } finally {
       setLoading(null);
@@ -174,15 +174,15 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || "Device test failed");
+        throw new Error(payload.error || "Couldn't test setup");
       }
 
-      setNotice("Device responded successfully.");
+      setNotice("Setup connected successfully.");
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Device test failed",
+          : "Couldn't test setup",
       );
     } finally {
       setLoading(null);
@@ -200,19 +200,19 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
       });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || "Failed to delete device");
+        throw new Error(payload.error || "Couldn't remove setup");
       }
 
       if (selectedDeviceId === deviceId) {
         setSelectedDeviceId("");
       }
-      setNotice("Device removed.");
+      setNotice("Setup removed.");
       await refreshDevices();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to delete device",
+          : "Couldn't remove setup",
       );
     } finally {
       setLoading(null);
@@ -236,16 +236,16 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || "Failed to start session");
+        throw new Error(payload.error || "Couldn't start session");
       }
 
-      setNotice("Session started. Chart motion is now driving the selected device.");
+      setNotice("Session started. Your selected setup is now following the chart.");
       await refreshSessions();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to start session",
+          : "Couldn't start session",
       );
     } finally {
       setLoading(null);
@@ -263,16 +263,16 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || "Failed to stop session");
+        throw new Error(payload.error || "Couldn't stop session");
       }
 
-      setNotice("Session stopped and cleanup requested.");
+      setNotice("Session stopped.");
       await refreshSessions();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to stop session",
+          : "Couldn't stop session",
       );
     } finally {
       setLoading(null);
@@ -283,35 +283,35 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
     <div className="app-shell">
       <SiteNav />
       <RouteHeader
-        eyebrow="Private operator"
-        title="Run the personal control room."
-        summary="This is the dense operator surface: monitor the token, keep media context visible, and control a selected device with explicit session feedback."
+        eyebrow="Personal dashboard"
+        title="Keep your market view, media, and setup together."
+        summary="Follow the token, keep a video source nearby, and start a saved session with clear feedback at every step."
         badges={[
-          "Status first",
-          "Chart + media + control",
-          "Saved device profiles",
+          "One-screen control",
+          "Saved setups",
+          "Live chart context",
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
               <p className="eyebrow">Session</p>
-              <strong>{activeSession ? activeSession.status : "Idle"}</strong>
-              <span>Current control state is always visible before actions.</span>
+              <strong>{activeSession ? activeSession.status : "Ready"}</strong>
+              <span>See your current session state before you start anything new.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Selected device</p>
-              <strong>{selectedDevice?.label || "No device selected"}</strong>
-              <span>{selectedDevice?.type || "Choose a saved connector below."}</span>
+              <p className="eyebrow">Selected setup</p>
+              <strong>{selectedDevice?.label || "Nothing selected yet"}</strong>
+              <span>{selectedDevice?.type || "Choose one of your saved setups below."}</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Mode</p>
-              <strong>{mode === "live" ? "Live engine" : "Generated script"}</strong>
-              <span>Recognition over recall: the active mode stays explicit.</span>
+              <strong>{mode === "live" ? "Live tracking" : "Guided pattern"}</strong>
+              <span>Switch between a live session and a generated pattern.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Last activity</p>
               <strong>{lastActivityLabel}</strong>
-              <span>Use recent session updates as the operational timeline.</span>
+              <span>Your latest session updates stay easy to spot.</span>
             </div>
           </div>
         }
@@ -324,52 +324,50 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
         <PriceChart
           contractAddress={contractAddress.trim() || DEFAULT_CONTRACT_ADDRESS}
           onSnapshotChange={setChartSnapshot}
+          onContractAddressChange={setContractAddress}
+          resetContractAddress={DEFAULT_CONTRACT_ADDRESS}
+          resetLabel="Reset PUMP"
         />
         <NewsPanel
           title={`${chartSnapshot?.symbol ?? "Solana"} news`}
           defaultCategory="solana"
         />
         <MediaEmbedPanel
-          title="Video or stream embed"
-          description="Paste any YouTube, Twitch, Vimeo, direct MP4, HLS, or iframe-ready stream URL. Your last media source is stored locally in the browser."
+          title="Video or stream"
+          description="Paste a video or stream link to keep the right media beside the chart while you work."
           defaultUrl={defaultMediaUrl}
           storageKey="goonclaw-personal-media"
         />
       </section>
 
       <section className="dashboard-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Device Control</p>
-              <h2>Run a private session</h2>
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Session</p>
+                <h2>Start a personal session</h2>
+              </div>
             </div>
-          </div>
-
-          <label className="field">
-            <span>Contract address</span>
-            <input
-              value={contractAddress}
-              onChange={(event) => setContractAddress(event.target.value)}
-              placeholder="Enter a Solana contract address"
-            />
-          </label>
 
           <div className="field-grid">
             <label className="field">
-              <span>Motion mode</span>
+              <span>Playback mode</span>
               <select
                 value={mode}
                 onChange={(event) => setMode(event.target.value as SessionMode)}
               >
-                <option value="live">Live engine</option>
-                <option value="script">Generated script</option>
+                <option value="live">Live tracking</option>
+                <option value="script">Guided pattern</option>
               </select>
             </label>
             <label className="field">
-              <span>Selected device</span>
+              <span>Selected setup / token</span>
               <input
-                value={selectedDevice?.label || "No device selected"}
+                value={
+                  selectedDevice?.label
+                    ? `${selectedDevice.label} | ${contractAddress.slice(0, 4)}...${contractAddress.slice(-4)}`
+                    : `No setup selected | ${contractAddress.slice(0, 4)}...${contractAddress.slice(-4)}`
+                }
                 readOnly
               />
             </label>
@@ -381,7 +379,7 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
               disabled={!selectedDeviceId || loading === "session"}
               onClick={() => void startSession()}
             >
-              {loading === "session" ? "Starting..." : "Start sync"}
+              {loading === "session" ? "Starting..." : "Start session"}
             </button>
             {activeSession ? (
               <button
@@ -419,17 +417,16 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
             </div>
           ) : (
             <p className="empty-state">
-              No active session. Save a device and start a run to drive it from
-              the chart.
+              No active session yet. Save a setup and start whenever you&apos;re ready.
             </p>
           )}
 
           <div className="route-badges">
             <StatusBadge tone={activeSession ? "success" : "warning"}>
-              {activeSession ? "Sync live" : "Sync idle"}
+              {activeSession ? "Session live" : "Ready to start"}
             </StatusBadge>
             <StatusBadge tone="neutral">
-              {selectedDevice ? `${selectedDevice.type} selected` : "No device selected"}
+              {selectedDevice ? `${selectedDevice.type} selected` : "No setup selected"}
             </StatusBadge>
           </div>
         </section>
@@ -438,8 +435,8 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Saved Devices</p>
-                <h2>Connectors and targets</h2>
+                <p className="eyebrow">Saved setups</p>
+                <h2>Devices and connections</h2>
               </div>
             </div>
 
@@ -488,7 +485,7 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
               </div>
             ) : (
               <p className="empty-state">
-                No device saved yet. Add one below to unlock direct control.
+                No setup saved yet. Add one below to get started.
               </p>
             )}
 
@@ -512,7 +509,7 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
                   <input
                     value={deviceForm.label}
                     onChange={(event) => updateDeviceForm("label", event.target.value)}
-                    placeholder="Bedroom device"
+                    placeholder="Bedroom setup"
                   />
                 </label>
               </div>
@@ -585,7 +582,7 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
                 disabled={loading === "device"}
                 onClick={() => void createDevice()}
               >
-                {loading === "device" ? "Saving..." : "Save device"}
+                {loading === "device" ? "Saving..." : "Save setup"}
               </button>
             </div>
           </section>
@@ -593,8 +590,8 @@ export function GoonclawClient({ defaultMediaUrl }: Props) {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Recent Sessions</p>
-                <h2>Worker history</h2>
+                <p className="eyebrow">Recent sessions</p>
+                <h2>Recent activity</h2>
               </div>
             </div>
 

@@ -27,7 +27,7 @@ export function AgentOpsPanel() {
         };
 
         if (!response.ok) {
-          throw new Error(payload.error || "Failed to load agent status");
+          throw new Error(payload.error || "Couldn't load platform status");
         }
 
         if (!cancelled) {
@@ -41,7 +41,7 @@ export function AgentOpsPanel() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Failed to load agent status",
+              : "Couldn't load platform status",
           );
         }
       }
@@ -67,26 +67,26 @@ export function AgentOpsPanel() {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Agent Ops</p>
-          <h2>Manual cNFT claims and buyback policy</h2>
+          <p className="eyebrow">Platform health</p>
+          <h2>Access delivery, payments, and AI services</h2>
         </div>
         <div className="source-pill">
           <span className="status-dot" />
-          {status?.modelRuntime.configured ? "vertex ready" : "awaiting vars"}
+          {status?.modelRuntime.configured ? "AI ready" : "Setup needed"}
         </div>
       </div>
       <p className="panel-lead">
-        Polling <code>/api/agent/status</code> every 30 seconds so manual claim
-        readiness, runtime wiring, and payment configuration stay visible.
+        This panel refreshes automatically so you can quickly confirm whether
+        the services behind GoonClaw are ready.
       </p>
 
       <div className="route-badges">
-        <StatusBadge tone="warning">Claim flow manual</StatusBadge>
+        <StatusBadge tone="warning">Access sent after review</StatusBadge>
         <StatusBadge tone={status?.invoiceVerificationReady ? "success" : "neutral"}>
-          {status?.invoiceVerificationReady ? "Invoice armed" : "Invoice not armed"}
+          {status?.invoiceVerificationReady ? "Payments ready" : "Payments not ready"}
         </StatusBadge>
         <StatusBadge tone={status?.cnftTreeConfigured ? "success" : "danger"}>
-          {status?.cnftTreeConfigured ? "cNFT tree ready" : "cNFT tree missing"}
+          {status?.cnftTreeConfigured ? "Access storage ready" : "Access storage missing"}
         </StatusBadge>
         <StatusBadge tone="neutral" mono>
           Last update {lastUpdatedLabel}
@@ -97,15 +97,15 @@ export function AgentOpsPanel() {
 
       <div className="stats-grid">
         <div className="metric-card">
-          <span>Claim flow</span>
-          <strong>Manual</strong>
+          <span>Access delivery</span>
+          <strong>Sent after review</strong>
         </div>
         <div className="metric-card">
-          <span>Eligibility gate</span>
+          <span>Access rules</span>
           <strong>LaunchONomics</strong>
         </div>
         <div className="metric-card">
-          <span>Creator fees for cNFT pool</span>
+          <span>Creator fees to access pool</span>
           <strong>{status?.creatorFeeCnftSharePct ?? 50}%</strong>
         </div>
         <div className="metric-card">
@@ -117,7 +117,7 @@ export function AgentOpsPanel() {
       <div className="history-list">
         <div className="history-item">
           <div>
-            <span>AI runtime</span>
+            <span>AI services</span>
             <strong>
               {status?.modelRuntime.configured ? "Vertex AI Gemini" : "Waiting"}
             </strong>
@@ -133,8 +133,8 @@ export function AgentOpsPanel() {
         </div>
         <div className="history-item">
           <div>
-            <span>Claim action</span>
-            <strong>Check eligibility, then click receive</strong>
+            <span>Access step</span>
+            <strong>Check the wallet, then send the pass</strong>
           </div>
           <div>
             <span>Reserve floor</span>
@@ -143,9 +143,9 @@ export function AgentOpsPanel() {
         </div>
         <div className="history-item">
           <div>
-            <span>Invoice verification</span>
+            <span>Payments</span>
             <strong>
-              {status?.invoiceVerificationReady ? "Pump Agent Payments" : "Not armed"}
+              {status?.invoiceVerificationReady ? "Pump Agent Payments" : "Not ready"}
             </strong>
           </div>
           <div>
@@ -155,11 +155,11 @@ export function AgentOpsPanel() {
         </div>
         <div className="history-item">
           <div>
-            <span>cNFT tree</span>
+            <span>Access storage</span>
             <strong>{status?.cnftTreeConfigured ? "Configured" : "Missing"}</strong>
           </div>
           <div>
-            <span>Project / authority</span>
+            <span>Project / permissions</span>
             <strong>
               {status?.modelRuntime.projectId
                 ? `${status.modelRuntime.projectId}${status.cnftAuthorityConfigured ? " + auth" : ""}`

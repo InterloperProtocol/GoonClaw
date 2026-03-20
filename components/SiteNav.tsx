@@ -7,10 +7,10 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 
 const items = [
   { href: "/", label: "Home" },
-  { href: "/eligibility", label: "Eligibility" },
+  { href: "/eligibility", label: "Access" },
   { href: "/goonclaw", label: "Personal" },
   { href: "/livestream", label: "Livestream" },
-  { href: "/agent", label: "Agent" },
+  { href: "/agent", label: "Status" },
 ];
 
 export function SiteNav() {
@@ -21,14 +21,14 @@ export function SiteNav() {
     <nav className="site-nav panel">
       <div className="site-nav-copy">
         <p className="eyebrow">GoonClaw</p>
-        <strong>Retro shell, modern ergonomics</strong>
+        <strong>One place to track the action</strong>
         <p className="site-nav-summary">
-          Private operator control, public queue trust, wallet eligibility, and
-          agent diagnostics all use the same console language.
+          Follow the market, manage live requests, check wallet access, and keep
+          an eye on platform health from one clean dashboard.
         </p>
         <div className="route-badges">
-          <StatusBadge tone="accent">Active surface: {activeItem.label}</StatusBadge>
-          <StatusBadge tone="neutral">Status-first UI</StatusBadge>
+          <StatusBadge tone="accent">You&apos;re here: {activeItem.label}</StatusBadge>
+          <StatusBadge tone="neutral">Live tools, easy to scan</StatusBadge>
         </div>
       </div>
       <div className="nav-links">

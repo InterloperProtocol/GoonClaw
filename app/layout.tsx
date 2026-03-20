@@ -17,7 +17,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "GoonClaw",
   description:
-    "Retro signal-console control room with private operator panels, public queue surfaces, device automation, and system diagnostics.",
+    "A polished dashboard for market watching, live queue management, wallet access checks, and platform status.",
 };
 
 export default function RootLayout({

@@ -10,6 +10,7 @@ const categories = [
   { id: "trading", label: "Trading" },
   { id: "macro", label: "Macro" },
 ];
+const CUSTOM_RSS_STORAGE_KEY = "goonclaw-news-custom-rss";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-US", {
@@ -20,7 +21,7 @@ function formatDate(value: string) {
 
 export function NewsPanel({
   title,
-  eyebrow = "Monitor the Situation",
+  eyebrow = "News",
   defaultCategory = "solana",
 }: {
   title: string;
@@ -28,9 +29,26 @@ export function NewsPanel({
   defaultCategory?: string;
 }) {
   const [category, setCategory] = useState(defaultCategory);
+  const [customFeedDraft, setCustomFeedDraft] = useState("");
+  const [customFeeds, setCustomFeeds] = useState<string[]>([]);
   const [feed, setFeed] = useState<NewsFeed | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem(CUSTOM_RSS_STORAGE_KEY);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as string[];
+      if (Array.isArray(parsed)) {
+        setCustomFeeds(parsed.filter(Boolean));
+      }
+    } catch {
+      setCustomFeeds([]);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,9 +58,13 @@ export function NewsPanel({
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/news?category=${encodeURIComponent(category)}&limit=6`,
-        );
+        const params = new URLSearchParams({
+          category,
+          limit: "6",
+        });
+        customFeeds.forEach((feedUrl) => params.append("rss", feedUrl));
+
+        const response = await fetch(`/api/news?${params.toString()}`);
         const payload = (await response.json()) as NewsFeed & { error?: string };
 
         if (!response.ok) {
@@ -74,7 +96,40 @@ export function NewsPanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [category]);
+  }, [category, customFeeds]);
+
+  function persistFeeds(nextFeeds: string[]) {
+    setCustomFeeds(nextFeeds);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CUSTOM_RSS_STORAGE_KEY, JSON.stringify(nextFeeds));
+    }
+  }
+
+  function addCustomFeed() {
+    const trimmed = customFeedDraft.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    try {
+      const normalized = new URL(trimmed).toString();
+      if (customFeeds.includes(normalized)) {
+        setCustomFeedDraft("");
+        return;
+      }
+
+      setError(null);
+      persistFeeds([...customFeeds, normalized]);
+      setCustomFeedDraft("");
+    } catch {
+      setError("Custom RSS feeds need a valid URL.");
+    }
+  }
+
+  function removeCustomFeed(feedUrl: string) {
+    setError(null);
+    persistFeeds(customFeeds.filter((value) => value !== feedUrl));
+  }
 
   return (
     <section className="panel news-panel">
@@ -85,9 +140,16 @@ export function NewsPanel({
         </div>
         <div className="source-pill">
           <span className="status-dot" />
-          {loading ? "Refreshing" : category}
+          {loading
+            ? "Refreshing"
+            : `${Math.max(feed?.sources.length ?? 0, 0)} sources`}
         </div>
       </div>
+
+      <p className="hero-summary compact">
+        Stay close to the market with a mix of live headlines and your own saved
+        RSS feeds.
+      </p>
 
       <div className="news-tabs">
         {categories.map((item) => (
@@ -106,7 +168,56 @@ export function NewsPanel({
         ))}
       </div>
 
+      <div className="media-toolbar">
+        <label className="field">
+          <span>Add a custom feed</span>
+          <input
+            value={customFeedDraft}
+            onChange={(event) => setCustomFeedDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addCustomFeed();
+              }
+            }}
+            placeholder="Paste an RSS or Atom feed URL"
+          />
+        </label>
+        <div className="button-row">
+          <button className="button button-secondary small" onClick={addCustomFeed} type="button">
+            Save feed
+          </button>
+        </div>
+      </div>
+
       {error ? <p className="error-banner">{error}</p> : null}
+      {feed?.sources.length ? (
+        <div className="route-badges">
+          <span className="status-badge status-badge-accent">Live mix</span>
+          <span className="status-badge">
+            {feed.sources.length} free sources
+          </span>
+        </div>
+      ) : null}
+      {customFeeds.length ? (
+        <div className="history-list">
+          {customFeeds.map((feedUrl) => (
+            <div key={feedUrl} className="history-item">
+              <div>
+                <span>Saved feed</span>
+                <strong>{feedUrl}</strong>
+              </div>
+              <button
+                className="button button-ghost small"
+                onClick={() => removeCustomFeed(feedUrl)}
+                type="button"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="news-list">
         {(feed?.articles ?? []).map((article) => (
@@ -125,7 +236,7 @@ export function NewsPanel({
 
       {!loading && !feed?.articles.length && !error ? (
         <p className="empty-state">
-          No articles landed for this lane yet. Try another news category in a
+          Nothing new has landed in this lane yet. Try another category in a
           moment.
         </p>
       ) : null}

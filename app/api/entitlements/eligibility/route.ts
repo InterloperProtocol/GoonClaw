@@ -19,7 +19,7 @@ function getStatusCode(message: string) {
 export async function POST(request: Request) {
   const body = (await request.json()) as { wallet?: string };
   if (!body.wallet?.trim()) {
-    return NextResponse.json({ error: "wallet is required" }, { status: 400 });
+    return NextResponse.json({ error: "Wallet is required" }, { status: 400 });
   }
 
   let wallet: string;
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     wallet = normalizeWallet(body.wallet);
   } catch {
     return NextResponse.json(
-      { error: "wallet must be a valid Solana address" },
+      { error: "Wallet must be a valid Solana address" },
       { status: 400 },
     );
   }
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error
         ? error.message
-        : "Failed to mint the subscription cNFT";
+        : "Couldn't send the subscription pass";
     return NextResponse.json(
       { error: message },
       { status: getStatusCode(message) },

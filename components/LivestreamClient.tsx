@@ -58,6 +58,7 @@ function shorten(value?: string) {
 export function LivestreamClient() {
   const [state, setState] = useState<LivestreamState | null>(null);
   const [chartSnapshot, setChartSnapshot] = useState<ChartSnapshot | null>(null);
+  const [chartContractAddress, setChartContractAddress] = useState("");
   const [contractAddress, setContractAddress] = useState("");
   const [tier, setTier] = useState<LivestreamTier>("standard");
   const [signature, setSignature] = useState("");
@@ -95,6 +96,7 @@ export function LivestreamClient() {
   }, [checkout]);
 
   const focusContractAddress =
+    chartContractAddress.trim() ||
     state?.current?.contractAddress ||
     checkout?.contractAddress ||
     contractAddress.trim() ||
@@ -120,20 +122,20 @@ export function LivestreamClient() {
         state?: LivestreamState;
       };
       if (!response.ok || !payload.item || !payload.state) {
-        throw new Error(payload.error || "Failed to create payment memo");
+        throw new Error(payload.error || "Couldn't create payment details");
       }
 
       setCheckout(payload.item);
       setState(payload.state);
       setSignature("");
       setNotice(
-        "Memo generated. Pay from any Solana wallet, then paste the transaction signature below.",
+        "Payment details are ready. Pay from your Solana wallet, then paste the confirmed signature below.",
       );
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to create payment memo",
+          : "Couldn't create payment details",
       );
     } finally {
       setLoading(null);
@@ -162,19 +164,19 @@ export function LivestreamClient() {
         state?: LivestreamState;
       };
       if (!response.ok || !payload.state) {
-        throw new Error(payload.error || "Failed to verify payment");
+        throw new Error(payload.error || "Couldn't confirm payment");
       }
 
       setState(payload.state);
       setCheckout(payload.item ?? checkout);
       setNotice(
-        "Payment verified. If the public device is free, your contract will start right away.",
+        "Payment confirmed. If the room is open, your request will start right away.",
       );
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Failed to verify payment",
+          : "Couldn't confirm payment",
       );
     } finally {
       setLoading(null);
@@ -185,36 +187,36 @@ export function LivestreamClient() {
     <div className="app-shell">
       <SiteNav />
       <RouteHeader
-        eyebrow="Public room"
-        title="Make queue state obvious and trustworthy."
-        summary="The livestream surface prioritizes public clarity: stream context up top, payment and request controls below, and current queue state visible before a user pays."
+        eyebrow="Live queue"
+        title="Make it easy for viewers to join in."
+        summary="Show what&apos;s live, collect paid requests, and keep the queue clear before anyone sends payment."
         badges={[
-          "Public clarity",
-          "Request trust",
+          "Clear live status",
+          "Simple request flow",
           `Standard ${state?.standardPriceSol ?? "0.001"} SOL`,
           `Priority ${state?.priorityPriceSol ?? "0.01"} SOL`,
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
-              <p className="eyebrow">Device state</p>
+              <p className="eyebrow">Live room</p>
               <strong>{state?.deviceAvailable ? "Available" : "Busy or offline"}</strong>
-              <span>Public users should know if the shared device can take control.</span>
+              <span>Let viewers see right away whether the room is open.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Queue depth</p>
               <strong>{state?.queue.length ?? 0} waiting</strong>
-              <span>Queue visibility reduces uncertainty and duplicate requests.</span>
+              <span>Everyone can see how many requests are still ahead.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Current request</p>
+              <p className="eyebrow">On screen</p>
               <strong>{state?.current ? shorten(state.current.contractAddress) : "No active request"}</strong>
-              <span>Live status stays near the request controls.</span>
+              <span>The current request always stays visible beside the queue.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Payment window</p>
+              <p className="eyebrow">Time to pay</p>
               <strong>{state?.paymentWindowSeconds ?? 900} sec</strong>
-              <span>Memo verification timeout is explicit before users act.</span>
+              <span>Viewers can see how long a request stays open for payment.</span>
             </div>
           </div>
         }
@@ -227,31 +229,42 @@ export function LivestreamClient() {
         <PriceChart
           contractAddress={focusContractAddress}
           onSnapshotChange={setChartSnapshot}
+          onContractAddressChange={setChartContractAddress}
+          quickContractAddress={state?.current?.contractAddress || checkout?.contractAddress}
+          quickLabel={
+            state?.current?.contractAddress
+              ? "Track live request"
+              : checkout?.contractAddress
+                ? "Track pending request"
+                : undefined
+          }
+          resetContractAddress={DEFAULT_CONTRACT_ADDRESS}
+          resetLabel="Reset PUMP"
         />
         <NewsPanel
           title={`${chartSnapshot?.symbol ?? "Solana"} news`}
           defaultCategory="solana"
         />
         <MediaEmbedPanel
-          title="Video embed"
-          description="This panel uses NEXT_PUBLIC_LIVESTREAM_EMBED_URL when configured, but you can also preview another embed locally while building."
+          title="Live room video"
+          description="Use a video or stream link to keep the live room preview visible while requests come in."
           defaultUrl={state?.embedUrl || ""}
           storageKey="goonclaw-livestream-media"
         />
       </section>
 
       <section className="dashboard-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Device Control</p>
-              <h2>Request shared control</h2>
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Requests</p>
+                <h2>Book time in the live queue</h2>
+              </div>
             </div>
-          </div>
 
           <p className="hero-summary compact">
-            Generate a memo, pay from any Solana wallet, then paste the confirmed
-            signature to unlock a control slot.
+            Choose a contract, pick a lane, pay, and paste the confirmed
+            signature to join the queue.
           </p>
 
           <label className="field">
@@ -294,7 +307,7 @@ export function LivestreamClient() {
               disabled={loading === "request"}
               onClick={() => void createRequest()}
             >
-              {loading === "request" ? "Generating..." : "Generate memo"}
+              {loading === "request" ? "Creating..." : "Generate payment details"}
             </button>
           </div>
 
@@ -320,7 +333,7 @@ export function LivestreamClient() {
                     <strong>{checkoutPrice} SOL</strong>
                   </div>
                   <div>
-                    <span>Memo</span>
+                    <span>Payment memo</span>
                     <strong>{checkout.memo}</strong>
                   </div>
                 </div>
@@ -350,17 +363,17 @@ export function LivestreamClient() {
                 disabled={loading === "verify" || !signature.trim()}
                 onClick={() => void verifyPayment()}
               >
-                {loading === "verify" ? "Verifying..." : "Verify payment"}
+                {loading === "verify" ? "Confirming..." : "Confirm payment"}
               </button>
             </div>
           ) : null}
 
           <div className="route-badges">
             <StatusBadge tone={checkout ? "accent" : "warning"}>
-              {checkout ? "Request pending" : "No active request"}
+              {checkout ? "Request in progress" : "No active request"}
             </StatusBadge>
             <StatusBadge tone={state?.deviceAvailable ? "success" : "danger"}>
-              {state?.deviceAvailable ? "Device available" : "Device occupied"}
+              {state?.deviceAvailable ? "Room available" : "Room occupied"}
             </StatusBadge>
           </div>
         </section>
@@ -370,7 +383,7 @@ export function LivestreamClient() {
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Queue</p>
-                <h2>Current control and waiting list</h2>
+                <h2>Now live and up next</h2>
               </div>
             </div>
 
@@ -403,7 +416,7 @@ export function LivestreamClient() {
               </div>
             ) : (
               <p className="empty-state">
-                Nobody is controlling the public device right now.
+                The live room is open right now.
               </p>
             )}
 
@@ -428,7 +441,7 @@ export function LivestreamClient() {
               </div>
             ) : (
               <p className="empty-state">
-                No verified requests are waiting in the queue.
+                Nothing is waiting in line right now.
               </p>
             )}
           </section>
@@ -437,7 +450,7 @@ export function LivestreamClient() {
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Recent</p>
-                <h2>Your latest requests</h2>
+                <h2>Recent requests</h2>
               </div>
             </div>
 
@@ -462,7 +475,7 @@ export function LivestreamClient() {
               </div>
             ) : (
               <p className="empty-state">
-                Your latest queue requests will show up here after you generate a memo.
+                Your recent requests will show up here after you create one.
               </p>
             )}
           </section>
