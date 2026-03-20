@@ -18,9 +18,18 @@ type Props = {
   onSnapshotChange?: (snapshot: ChartSnapshot | null) => void;
 };
 
+type SeriesHandle = {
+  setData: (data: Array<Record<string, unknown>>) => void;
+  priceScale?: () => {
+    applyOptions: (options: Record<string, unknown>) => void;
+  };
+};
+
 export function PriceChart({ contractAddress, onSnapshotChange }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<SeriesHandle | null>(null);
+  const volumeSeriesRef = useRef<SeriesHandle | null>(null);
   const [snapshot, setSnapshot] = useState<ChartSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,9 +72,8 @@ export function PriceChart({ contractAddress, onSnapshotChange }: Props) {
   }, [onSnapshotChange, snapshot]);
 
   useEffect(() => {
-    if (!containerRef.current || !snapshot) return;
+    if (!containerRef.current) return;
 
-    chartRef.current?.remove();
     const chart = createChart(containerRef.current, {
       autoSize: true,
       layout: {
@@ -92,17 +100,6 @@ export function PriceChart({ contractAddress, onSnapshotChange }: Props) {
       wickDownColor: "#ef4444",
       borderVisible: false,
     });
-
-    candleSeries.setData(
-      snapshot.candles.map((candle) => ({
-        time: candle.time as UTCTimestamp,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-      })),
-    );
-
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceScaleId: "",
       color: "rgba(56, 189, 248, 0.35)",
@@ -113,7 +110,43 @@ export function PriceChart({ contractAddress, onSnapshotChange }: Props) {
         bottom: 0,
       },
     });
-    volumeSeries.setData(
+    chartRef.current = chart;
+    candleSeriesRef.current = candleSeries as unknown as SeriesHandle;
+    volumeSeriesRef.current = volumeSeries as unknown as SeriesHandle;
+
+    return () => {
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      chartRef.current = null;
+      try {
+        chart.remove();
+      } catch {
+        // lightweight-charts can throw during teardown if the canvas is already disposed.
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      !snapshot ||
+      !chartRef.current ||
+      !candleSeriesRef.current ||
+      !volumeSeriesRef.current
+    ) {
+      return;
+    }
+
+    candleSeriesRef.current.setData(
+      snapshot.candles.map((candle) => ({
+        time: candle.time as UTCTimestamp,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+      })),
+    );
+
+    volumeSeriesRef.current.setData(
       snapshot.candles.map((candle) => ({
         time: candle.time as UTCTimestamp,
         value: candle.volume,
@@ -124,12 +157,11 @@ export function PriceChart({ contractAddress, onSnapshotChange }: Props) {
       })),
     );
 
-    chart.timeScale().fitContent();
-    chartRef.current = chart;
-
-    return () => {
-      chart.remove();
-    };
+    try {
+      chartRef.current.timeScale().fitContent();
+    } catch {
+      // Ignore racey fit calls during rapid unmount/remount.
+    }
   }, [snapshot]);
 
   return (

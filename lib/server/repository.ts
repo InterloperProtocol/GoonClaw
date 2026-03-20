@@ -1,5 +1,5 @@
 import { cert, getApp, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { Firestore, getFirestore } from "firebase-admin/firestore";
 
 import { getServerEnv, isFirebaseConfigured } from "@/lib/env";
 import { encryptJson } from "@/lib/server/crypto";
@@ -66,6 +66,51 @@ function getAdminDb() {
   return getFirestore(app);
 }
 
+function isFirestoreUnavailableError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("cloud firestore api has not been used") ||
+    message.includes("firestore api") ||
+    message.includes("service_disabled") ||
+    message.includes("permission_denied") ||
+    message.includes("failed_precondition") ||
+    message.includes("the database") ||
+    message.includes("firestore.googleapis.com")
+  );
+}
+
+function logFirestoreFallback(action: string, error: unknown) {
+  const detail = error instanceof Error ? error.message : String(error);
+  console.warn(
+    `[repository] ${action}: Firestore unavailable, falling back to in-memory store. ${detail}`,
+  );
+}
+
+async function withRepositoryBackend<T>(
+  action: string,
+  fallback: () => Promise<T> | T,
+  dbAction: (db: Firestore) => Promise<T>,
+) {
+  const db = getAdminDb();
+  if (!db) {
+    return await fallback();
+  }
+
+  try {
+    return await dbAction(db);
+  } catch (error) {
+    if (isFirestoreUnavailableError(error)) {
+      logFirestoreFallback(action, error);
+      return await fallback();
+    }
+    throw error;
+  }
+}
+
 function sanitizeDevice(profile: DeviceProfile): SanitizedDeviceProfile {
   return {
     id: profile.id,
@@ -111,24 +156,29 @@ export async function listDevices(wallet: string) {
   const synthetic = wallet === PUBLIC_LIVESTREAM_OWNER_ID
     ? buildPublicLivestreamDevice()
     : null;
-  const db = getAdminDb();
 
-  if (!db) {
-    const items = [...getMemoryStore().devices.values()].filter(
-      (device) => device.wallet === wallet,
-    );
-    if (synthetic) items.unshift(synthetic);
-    return items.map(sanitizeDevice);
-  }
+  return withRepositoryBackend(
+    "listDevices",
+    () => {
+      const items = [...getMemoryStore().devices.values()].filter(
+        (device) => device.wallet === wallet,
+      );
+      if (synthetic) items.unshift(synthetic);
+      return items.map(sanitizeDevice);
+    },
+    async (db) => {
+      const snapshot = await db
+        .collection("deviceProfiles")
+        .where("wallet", "==", wallet)
+        .orderBy("updatedAt", "desc")
+        .get();
 
-  const snapshot = await db
-    .collection("deviceProfiles")
-    .where("wallet", "==", wallet)
-    .orderBy("updatedAt", "desc")
-    .get();
-
-  const items = snapshot.docs.map((doc) => sanitizeDevice(doc.data() as DeviceProfile));
-  return synthetic ? [sanitizeDevice(synthetic), ...items] : items;
+      const items = snapshot.docs.map((doc) =>
+        sanitizeDevice(doc.data() as DeviceProfile),
+      );
+      return synthetic ? [sanitizeDevice(synthetic), ...items] : items;
+    },
+  );
 }
 
 export async function getDevice(wallet: string, id: string) {
@@ -136,141 +186,174 @@ export async function getDevice(wallet: string, id: string) {
     return buildPublicLivestreamDevice();
   }
 
-  const db = getAdminDb();
-  if (!db) {
-    const device = getMemoryStore().devices.get(id);
-    if (!device || device.wallet !== wallet) return null;
-    return device;
-  }
-
-  const doc = await db.collection("deviceProfiles").doc(id).get();
-  if (!doc.exists) return null;
-  const data = doc.data() as DeviceProfile;
-  if (data.wallet !== wallet) return null;
-  return data;
+  return withRepositoryBackend(
+    "getDevice",
+    () => {
+      const device = getMemoryStore().devices.get(id);
+      if (!device || device.wallet !== wallet) return null;
+      return device;
+    },
+    async (db) => {
+      const doc = await db.collection("deviceProfiles").doc(id).get();
+      if (!doc.exists) return null;
+      const data = doc.data() as DeviceProfile;
+      if (data.wallet !== wallet) return null;
+      return data;
+    },
+  );
 }
 
 export async function upsertDevice(profile: DeviceProfile) {
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().devices.set(profile.id, profile);
-    return sanitizeDevice(profile);
-  }
-
-  await db.collection("deviceProfiles").doc(profile.id).set(profile, { merge: true });
-  return sanitizeDevice(profile);
+  return withRepositoryBackend(
+    "upsertDevice",
+    () => {
+      getMemoryStore().devices.set(profile.id, profile);
+      return sanitizeDevice(profile);
+    },
+    async (db) => {
+      await db
+        .collection("deviceProfiles")
+        .doc(profile.id)
+        .set(profile, { merge: true });
+      return sanitizeDevice(profile);
+    },
+  );
 }
 
 export async function deleteDevice(wallet: string, id: string) {
   const existing = await getDevice(wallet, id);
   if (!existing || matchesPublicLivestreamDevice(wallet, id)) return false;
 
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().devices.delete(id);
-    return true;
-  }
-
-  await db.collection("deviceProfiles").doc(id).delete();
-  return true;
+  return withRepositoryBackend(
+    "deleteDevice",
+    () => {
+      getMemoryStore().devices.delete(id);
+      return true;
+    },
+    async (db) => {
+      await db.collection("deviceProfiles").doc(id).delete();
+      return true;
+    },
+  );
 }
 
 export async function getEntitlement(wallet: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return getMemoryStore().entitlements.get(wallet) ?? null;
-  }
-
-  const doc = await db.collection("entitlements").doc(wallet).get();
-  return doc.exists ? (doc.data() as EntitlementRecord) : null;
+  return withRepositoryBackend(
+    "getEntitlement",
+    () => getMemoryStore().entitlements.get(wallet) ?? null,
+    async (db) => {
+      const doc = await db.collection("entitlements").doc(wallet).get();
+      return doc.exists ? (doc.data() as EntitlementRecord) : null;
+    },
+  );
 }
 
 export async function upsertEntitlement(record: EntitlementRecord) {
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().entitlements.set(record.wallet, record);
-    return record;
-  }
-
-  await db.collection("entitlements").doc(record.wallet).set(record, { merge: true });
-  return record;
+  return withRepositoryBackend(
+    "upsertEntitlement",
+    () => {
+      getMemoryStore().entitlements.set(record.wallet, record);
+      return record;
+    },
+    async (db) => {
+      await db
+        .collection("entitlements")
+        .doc(record.wallet)
+        .set(record, { merge: true });
+      return record;
+    },
+  );
 }
 
 export async function saveOrder(record: OrderRecord) {
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().orders.set(record.signature, record);
-    return record;
-  }
-
-  await db.collection("orders").doc(record.signature).set(record, { merge: true });
-  return record;
+  return withRepositoryBackend(
+    "saveOrder",
+    () => {
+      getMemoryStore().orders.set(record.signature, record);
+      return record;
+    },
+    async (db) => {
+      await db.collection("orders").doc(record.signature).set(record, { merge: true });
+      return record;
+    },
+  );
 }
 
 export async function getOrder(signature: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return getMemoryStore().orders.get(signature) ?? null;
-  }
-
-  const doc = await db.collection("orders").doc(signature).get();
-  return doc.exists ? (doc.data() as OrderRecord) : null;
+  return withRepositoryBackend(
+    "getOrder",
+    () => getMemoryStore().orders.get(signature) ?? null,
+    async (db) => {
+      const doc = await db.collection("orders").doc(signature).get();
+      return doc.exists ? (doc.data() as OrderRecord) : null;
+    },
+  );
 }
 
 export async function getSession(id: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return getMemoryStore().sessions.get(id) ?? null;
-  }
-
-  const doc = await db.collection("sessions").doc(id).get();
-  return doc.exists ? (doc.data() as SessionRecord) : null;
+  return withRepositoryBackend(
+    "getSession",
+    () => getMemoryStore().sessions.get(id) ?? null,
+    async (db) => {
+      const doc = await db.collection("sessions").doc(id).get();
+      return doc.exists ? (doc.data() as SessionRecord) : null;
+    },
+  );
 }
 
 export async function listSessions(wallet: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return [...getMemoryStore().sessions.values()]
-      .filter((session) => session.wallet === wallet)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }
+  return withRepositoryBackend(
+    "listSessions",
+    () =>
+      [...getMemoryStore().sessions.values()]
+        .filter((session) => session.wallet === wallet)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    async (db) => {
+      const snapshot = await db
+        .collection("sessions")
+        .where("wallet", "==", wallet)
+        .orderBy("updatedAt", "desc")
+        .get();
 
-  const snapshot = await db
-    .collection("sessions")
-    .where("wallet", "==", wallet)
-    .orderBy("updatedAt", "desc")
-    .get();
-
-  return snapshot.docs.map((doc) => doc.data() as SessionRecord);
+      return snapshot.docs.map((doc) => doc.data() as SessionRecord);
+    },
+  );
 }
 
 export async function listRecoverableSessions() {
-  const db = getAdminDb();
-  if (!db) {
-    return [...getMemoryStore().sessions.values()]
-      .filter((session) => session.status === "starting" || session.status === "active")
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }
+  return withRepositoryBackend(
+    "listRecoverableSessions",
+    () =>
+      [...getMemoryStore().sessions.values()]
+        .filter(
+          (session) => session.status === "starting" || session.status === "active",
+        )
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    async (db) => {
+      const snapshot = await db
+        .collection("sessions")
+        .where("status", "in", ["starting", "active"])
+        .get();
 
-  const snapshot = await db
-    .collection("sessions")
-    .where("status", "in", ["starting", "active"])
-    .get();
-
-  return snapshot.docs
-    .map((doc) => doc.data() as SessionRecord)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      return snapshot.docs
+        .map((doc) => doc.data() as SessionRecord)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    },
+  );
 }
 
 export async function upsertSession(record: SessionRecord) {
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().sessions.set(record.id, record);
-    return record;
-  }
-
-  await db.collection("sessions").doc(record.id).set(record, { merge: true });
-  return record;
+  return withRepositoryBackend(
+    "upsertSession",
+    () => {
+      getMemoryStore().sessions.set(record.id, record);
+      return record;
+    },
+    async (db) => {
+      await db.collection("sessions").doc(record.id).set(record, { merge: true });
+      return record;
+    },
+  );
 }
 
 export async function acquireSessionLease(
@@ -279,55 +362,56 @@ export async function acquireSessionLease(
   ttlMs: number,
 ) {
   const expiresAt = new Date(Date.now() + ttlMs).toISOString();
-  const db = getAdminDb();
 
-  if (!db) {
-    const current = getMemoryStore().sessions.get(record.id) ?? record;
-    const currentLeaseExpiresAt = current.runtimeLeaseExpiresAt
-      ? new Date(current.runtimeLeaseExpiresAt).getTime()
-      : 0;
-    const leaseActive =
-      current.runtimeOwnerId &&
-      current.runtimeOwnerId !== ownerId &&
-      currentLeaseExpiresAt > Date.now();
-    if (leaseActive) return null;
+  return withRepositoryBackend(
+    "acquireSessionLease",
+    () => {
+      const current = getMemoryStore().sessions.get(record.id) ?? record;
+      const currentLeaseExpiresAt = current.runtimeLeaseExpiresAt
+        ? new Date(current.runtimeLeaseExpiresAt).getTime()
+        : 0;
+      const leaseActive =
+        current.runtimeOwnerId &&
+        current.runtimeOwnerId !== ownerId &&
+        currentLeaseExpiresAt > Date.now();
+      if (leaseActive) return null;
 
-    const next: SessionRecord = {
-      ...current,
-      runtimeOwnerId: ownerId,
-      runtimeLeaseExpiresAt: expiresAt,
-      updatedAt: nowIso(),
-    };
-    getMemoryStore().sessions.set(next.id, next);
-    return next;
-  }
+      const next: SessionRecord = {
+        ...current,
+        runtimeOwnerId: ownerId,
+        runtimeLeaseExpiresAt: expiresAt,
+        updatedAt: nowIso(),
+      };
+      getMemoryStore().sessions.set(next.id, next);
+      return next;
+    },
+    async (db) => {
+      const ref = db.collection("sessions").doc(record.id);
+      return db.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        const current = snapshot.exists ? (snapshot.data() as SessionRecord) : record;
+        const currentLeaseExpiresAt = current.runtimeLeaseExpiresAt
+          ? new Date(current.runtimeLeaseExpiresAt).getTime()
+          : 0;
+        const leaseActive =
+          current.runtimeOwnerId &&
+          current.runtimeOwnerId !== ownerId &&
+          currentLeaseExpiresAt > Date.now();
+        if (leaseActive) {
+          return null;
+        }
 
-  const ref = db.collection("sessions").doc(record.id);
-  return db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const current = snapshot.exists
-      ? (snapshot.data() as SessionRecord)
-      : record;
-    const currentLeaseExpiresAt = current.runtimeLeaseExpiresAt
-      ? new Date(current.runtimeLeaseExpiresAt).getTime()
-      : 0;
-    const leaseActive =
-      current.runtimeOwnerId &&
-      current.runtimeOwnerId !== ownerId &&
-      currentLeaseExpiresAt > Date.now();
-    if (leaseActive) {
-      return null;
-    }
-
-    const next: SessionRecord = {
-      ...current,
-      runtimeOwnerId: ownerId,
-      runtimeLeaseExpiresAt: expiresAt,
-      updatedAt: nowIso(),
-    };
-    transaction.set(ref, next, { merge: true });
-    return next;
-  });
+        const next: SessionRecord = {
+          ...current,
+          runtimeOwnerId: ownerId,
+          runtimeLeaseExpiresAt: expiresAt,
+          updatedAt: nowIso(),
+        };
+        transaction.set(ref, next, { merge: true });
+        return next;
+      });
+    },
+  );
 }
 
 export async function renewSessionLease(
@@ -368,69 +452,73 @@ export async function markSessionStopped(id: string, lastError?: string) {
 }
 
 export async function upsertLivestreamRequest(record: LivestreamRequestRecord) {
-  const db = getAdminDb();
-  if (!db) {
-    getMemoryStore().livestreamRequests.set(record.id, record);
-    return record;
-  }
-
-  await db
-    .collection("livestreamRequests")
-    .doc(record.id)
-    .set(record, { merge: true });
-  return record;
+  return withRepositoryBackend(
+    "upsertLivestreamRequest",
+    () => {
+      getMemoryStore().livestreamRequests.set(record.id, record);
+      return record;
+    },
+    async (db) => {
+      await db
+        .collection("livestreamRequests")
+        .doc(record.id)
+        .set(record, { merge: true });
+      return record;
+    },
+  );
 }
 
 export async function getLivestreamRequest(id: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return getMemoryStore().livestreamRequests.get(id) ?? null;
-  }
-
-  const doc = await db.collection("livestreamRequests").doc(id).get();
-  return doc.exists ? (doc.data() as LivestreamRequestRecord) : null;
+  return withRepositoryBackend(
+    "getLivestreamRequest",
+    () => getMemoryStore().livestreamRequests.get(id) ?? null,
+    async (db) => {
+      const doc = await db.collection("livestreamRequests").doc(id).get();
+      return doc.exists ? (doc.data() as LivestreamRequestRecord) : null;
+    },
+  );
 }
 
 export async function getLivestreamRequestByMemo(memo: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return (
+  return withRepositoryBackend(
+    "getLivestreamRequestByMemo",
+    () =>
       [...getMemoryStore().livestreamRequests.values()].find(
         (item) => item.memo === memo,
-      ) ?? null
-    );
-  }
+      ) ?? null,
+    async (db) => {
+      const snapshot = await db
+        .collection("livestreamRequests")
+        .where("memo", "==", memo)
+        .limit(1)
+        .get();
 
-  const snapshot = await db
-    .collection("livestreamRequests")
-    .where("memo", "==", memo)
-    .limit(1)
-    .get();
-
-  return snapshot.empty
-    ? null
-    : (snapshot.docs[0].data() as LivestreamRequestRecord);
+      return snapshot.empty
+        ? null
+        : (snapshot.docs[0].data() as LivestreamRequestRecord);
+    },
+  );
 }
 
 export async function getLivestreamRequestBySignature(signature: string) {
-  const db = getAdminDb();
-  if (!db) {
-    return (
+  return withRepositoryBackend(
+    "getLivestreamRequestBySignature",
+    () =>
       [...getMemoryStore().livestreamRequests.values()].find(
         (item) => item.signature === signature,
-      ) ?? null
-    );
-  }
+      ) ?? null,
+    async (db) => {
+      const snapshot = await db
+        .collection("livestreamRequests")
+        .where("signature", "==", signature)
+        .limit(1)
+        .get();
 
-  const snapshot = await db
-    .collection("livestreamRequests")
-    .where("signature", "==", signature)
-    .limit(1)
-    .get();
-
-  return snapshot.empty
-    ? null
-    : (snapshot.docs[0].data() as LivestreamRequestRecord);
+      return snapshot.empty
+        ? null
+        : (snapshot.docs[0].data() as LivestreamRequestRecord);
+    },
+  );
 }
 
 function sortLivestreamRequests(
@@ -445,54 +533,60 @@ function sortLivestreamRequests(
 }
 
 export async function listLivestreamRequests(statuses?: LivestreamRequestStatus[]) {
-  const db = getAdminDb();
-  if (!db) {
-    const items = [...getMemoryStore().livestreamRequests.values()].filter(
-      (item) => !statuses || statuses.includes(item.status),
-    );
-    return sortLivestreamRequests(items, "asc");
-  }
+  return withRepositoryBackend(
+    "listLivestreamRequests",
+    () => {
+      const items = [...getMemoryStore().livestreamRequests.values()].filter(
+        (item) => !statuses || statuses.includes(item.status),
+      );
+      return sortLivestreamRequests(items, "asc");
+    },
+    async (db) => {
+      if (statuses?.length === 1) {
+        const snapshot = await db
+          .collection("livestreamRequests")
+          .where("status", "==", statuses[0])
+          .orderBy("createdAt", "asc")
+          .get();
+        return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+      }
 
-  if (statuses?.length === 1) {
-    const snapshot = await db
-      .collection("livestreamRequests")
-      .where("status", "==", statuses[0])
-      .orderBy("createdAt", "asc")
-      .get();
-    return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
-  }
+      if (statuses && statuses.length > 1) {
+        const snapshot = await db
+          .collection("livestreamRequests")
+          .where("status", "in", statuses)
+          .orderBy("createdAt", "asc")
+          .get();
+        return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+      }
 
-  if (statuses && statuses.length > 1) {
-    const snapshot = await db
-      .collection("livestreamRequests")
-      .where("status", "in", statuses)
-      .orderBy("createdAt", "asc")
-      .get();
-    return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
-  }
-
-  const snapshot = await db
-    .collection("livestreamRequests")
-    .orderBy("createdAt", "asc")
-    .get();
-  return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+      const snapshot = await db
+        .collection("livestreamRequests")
+        .orderBy("createdAt", "asc")
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+    },
+  );
 }
 
 export async function listLivestreamRequestsForGuest(guestId: string, limit = 10) {
-  const db = getAdminDb();
-  if (!db) {
-    const items = [...getMemoryStore().livestreamRequests.values()].filter(
-      (item) => item.guestId === guestId,
-    );
-    return sortLivestreamRequests(items, "desc").slice(0, limit);
-  }
+  return withRepositoryBackend(
+    "listLivestreamRequestsForGuest",
+    () => {
+      const items = [...getMemoryStore().livestreamRequests.values()].filter(
+        (item) => item.guestId === guestId,
+      );
+      return sortLivestreamRequests(items, "desc").slice(0, limit);
+    },
+    async (db) => {
+      const snapshot = await db
+        .collection("livestreamRequests")
+        .where("guestId", "==", guestId)
+        .orderBy("createdAt", "desc")
+        .limit(limit)
+        .get();
 
-  const snapshot = await db
-    .collection("livestreamRequests")
-    .where("guestId", "==", guestId)
-    .orderBy("createdAt", "desc")
-    .limit(limit)
-    .get();
-
-  return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+      return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
+    },
+  );
 }

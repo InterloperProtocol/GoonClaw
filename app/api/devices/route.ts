@@ -20,39 +20,58 @@ function supports(type: DeviceType) {
 }
 
 export async function GET() {
-  const session = await getOrCreateGuestSession();
-
-  const devices = await listDevices(session.id);
-  return NextResponse.json({ items: devices });
+  try {
+    const session = await getOrCreateGuestSession();
+    const devices = await listDevices(session.id);
+    return NextResponse.json({ items: devices });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to load devices",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
-  const session = await getOrCreateGuestSession();
+  try {
+    const session = await getOrCreateGuestSession();
 
-  const body = (await request.json()) as {
-    type?: DeviceType;
-    label?: string;
-    credentials?: DeviceCredentials;
-  };
+    const body = (await request.json()) as {
+      type?: DeviceType;
+      label?: string;
+      credentials?: DeviceCredentials;
+    };
 
-  if (!body.type || !body.label || !body.credentials) {
+    if (!body.type || !body.label || !body.credentials) {
+      return NextResponse.json(
+        { error: "type, label, and credentials are required" },
+        { status: 400 },
+      );
+    }
+
+    const profile: DeviceProfile = {
+      id: randomUUID(),
+      wallet: session.id,
+      type: body.type,
+      label: body.label,
+      encryptedCredentials: encryptJson(body.credentials),
+      ...supports(body.type),
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+
+    const saved = await upsertDevice(profile);
+    return NextResponse.json({ item: saved });
+  } catch (error) {
     return NextResponse.json(
-      { error: "type, label, and credentials are required" },
-      { status: 400 },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to save device",
+      },
+      { status: 500 },
     );
   }
-
-  const profile: DeviceProfile = {
-    id: randomUUID(),
-    wallet: session.id,
-    type: body.type,
-    label: body.label,
-    encryptedCredentials: encryptJson(body.credentials),
-    ...supports(body.type),
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  };
-
-  const saved = await upsertDevice(profile);
-  return NextResponse.json({ item: saved });
 }

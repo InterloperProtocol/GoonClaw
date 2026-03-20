@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type EmbedConfig =
   | {
       kind: "video";
       src: string;
+      streamType: "file" | "hls";
     }
   | {
       kind: "iframe";
@@ -70,9 +71,11 @@ function buildEmbedConfig(value: string, parentHost: string): EmbedConfig | null
     }
 
     if (/\.(mp4|webm|ogg|mov|m3u8)(\?|$)/i.test(url.pathname)) {
+      const streamType = /\.m3u8(\?|$)/i.test(url.pathname) ? "hls" : "file";
       return {
         kind: "video" as const,
         src: url.toString(),
+        streamType,
       };
     }
 
@@ -103,6 +106,7 @@ export function MediaEmbedPanel({
   const [draftUrl, setDraftUrl] = useState(defaultUrl);
   const [activeUrl, setActiveUrl] = useState(defaultUrl);
   const [parentHost, setParentHost] = useState("localhost");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -125,6 +129,53 @@ export function MediaEmbedPanel({
     () => buildEmbedConfig(activeUrl, parentHost),
     [activeUrl, parentHost],
   );
+
+  useEffect(() => {
+    if (!embed || embed.kind !== "video" || embed.streamType !== "hls") {
+      return;
+    }
+
+    if (!videoRef.current) {
+      return;
+    }
+    const currentVideo = videoRef.current;
+    const embedSrc = embed.src;
+
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
+    async function attachHls() {
+      if (currentVideo.canPlayType("application/vnd.apple.mpegurl")) {
+        currentVideo.src = embedSrc;
+        return;
+      }
+
+      const hlsModule = await import("hls.js");
+      if (disposed || !videoRef.current) {
+        return;
+      }
+
+      const Hls = hlsModule.default;
+      if (!Hls.isSupported()) {
+        currentVideo.src = embedSrc;
+        return;
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+      });
+      hls.loadSource(embedSrc);
+      hls.attachMedia(currentVideo);
+      cleanup = () => hls.destroy();
+    }
+
+    void attachHls();
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [embed]);
 
   function applyUrl() {
     setActiveUrl(draftUrl.trim());
@@ -180,7 +231,8 @@ export function MediaEmbedPanel({
               className="media-video"
               controls
               playsInline
-              src={embed.src}
+              ref={videoRef}
+              src={embed.streamType === "file" ? embed.src : undefined}
             />
           </div>
         ) : (

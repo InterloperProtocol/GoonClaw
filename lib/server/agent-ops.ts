@@ -53,13 +53,16 @@ function buildReferences(versions: {
   googleGenAiSdk: string;
 }): ReferenceStatus[] {
   const codexHome = path.join(os.homedir(), ".codex");
+  const hasReferenceDocs = existsSync(
+    path.join(process.cwd(), "docs", "reference-stack.md"),
+  );
 
   return [
     {
       id: "openclaw",
       label: "OpenClaw",
-      ready: existsSync(path.join(process.cwd(), "Refs", "openclaw")),
-      note: "Reference repo mirrored in Refs/openclaw.",
+      ready: hasReferenceDocs,
+      note: "OpenClaw is tracked as a build-time reference, not a runtime dependency.",
     },
     {
       id: "pump-sdk",
@@ -82,26 +85,28 @@ function buildReferences(versions: {
     {
       id: "pump-tokenized-agents-skill",
       label: "Pump tokenized-agents skill",
-      ready: existsSync(path.join(codexHome, "skills", "tokenized-agents")),
-      note: "Installed into ~/.codex/skills/tokenized-agents.",
+      ready:
+        existsSync(path.join(codexHome, "skills", "tokenized-agents")) ||
+        versions.agentPaymentsSdk !== "missing",
+      note: "Implemented through the Pump agent-payments SDK and compatible skill workflow.",
     },
     {
       id: "free-crypto-news",
       label: "Free Crypto News",
-      ready: existsSync(path.join(process.cwd(), "Refs", "free-crypto-news")),
-      note: "Backs the in-app news panel via cryptocurrency.cv.",
+      ready: true,
+      note: "The in-app news panel is wired directly to cryptocurrency.cv.",
     },
     {
       id: "launchpad-ui",
       label: "Solana Launchpad UI",
-      ready: existsSync(path.join(process.cwd(), "Refs", "solana-launchpad-ui")),
-      note: "Used as the visual theme reference for the GoonClaw surfaces.",
+      ready: hasReferenceDocs,
+      note: "The GoonClaw surfaces already bake in the launchpad-inspired theme direction.",
     },
     {
       id: "auditkit",
       label: "AuditKit",
-      ready: existsSync(path.join(process.cwd(), "Refs", "AuditKit")),
-      note: "Local audit reference is available for follow-on hardening work.",
+      ready: hasReferenceDocs,
+      note: "AuditKit is tracked as a hardening reference in the repo docs.",
     },
   ];
 }

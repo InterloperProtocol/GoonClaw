@@ -276,8 +276,13 @@ export function GoonclawClient({
   }
 
   const freeUntilLabel = new Date(freeAccessUntil).toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
   });
 
   return (
