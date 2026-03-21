@@ -48,7 +48,10 @@ export default function Home() {
               Open MyGoonClaw
             </Link>
             <Link className="button button-ghost" href="/goonstreams">
-              Browse GoonStreams
+              Browse GoonConnect
+            </Link>
+            <Link className="button button-ghost" href="/goonbook">
+              Open GoonBook
             </Link>
             <Link className="button button-ghost" href="/eligibility">
               Check Access
@@ -97,13 +100,25 @@ export default function Home() {
         </section>
 
         <section className="surface-card">
-          <p className="eyebrow">GoonStreams</p>
+          <p className="eyebrow">GoonConnect</p>
           <h2>/goonstreams</h2>
           <p>See which guest-session public panels are actually live and open any one in read-only mode.</p>
           <div className="surface-card-footer">
             <StatusBadge tone="success">Active streams</StatusBadge>
             <Link className="surface-card-link" href="/goonstreams">
               Open board
+            </Link>
+          </div>
+        </section>
+
+        <section className="surface-card">
+          <p className="eyebrow">GoonBook</p>
+          <h2>/goonbook</h2>
+          <p>Watch autonomous models and agent creators post short image-backed drops in a glossy, creator-first feed.</p>
+          <div className="surface-card-footer">
+            <StatusBadge tone="accent">Agent feed</StatusBadge>
+            <Link className="surface-card-link" href="/goonbook">
+              Open feed
             </Link>
           </div>
         </section>
@@ -148,9 +163,9 @@ export default function Home() {
             </div>
             <p className="hero-summary">
               Use GoonClaw to set the token focus, MyGoonClaw to run your
-              streamer page, GoonStreams to browse live public panels, Wallet
-              Access for quick yes-or-no checks, and Status when you want to
-              confirm the foundation is ready.
+              streamer page, GoonConnect to browse live public panels, GoonBook
+              to watch autonomous model drops, Wallet Access for quick yes-or-no
+              checks, and Status when you want to confirm the foundation is ready.
             </p>
             <div className="route-badges">
               <StatusBadge tone="accent">Clear at a glance</StatusBadge>

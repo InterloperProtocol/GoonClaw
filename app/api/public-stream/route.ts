@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getOrCreateGuestSession } from "@/lib/server/guest";
 import { assertGuestEnabled } from "@/lib/server/internal-admin";
+import { assertSameOriginMutation } from "@/lib/server/request-security";
 import {
   buildPublicStreamPath,
   getCurrentPublicStreamProfile,
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    assertSameOriginMutation(request);
     const guestSession = await getOrCreateGuestSession();
     await assertGuestEnabled(guestSession.id);
     const body = (await request.json()) as {
@@ -70,7 +72,10 @@ export async function PUT(request: Request) {
             ? error.message
             : "Failed to save public stream settings",
       },
-      { status: 400 },
+      {
+        status:
+          error instanceof Error && error.message.includes("Cross-") ? 403 : 400,
+      },
     );
   }
 }

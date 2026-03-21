@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.typecheck.json",
     "worker:dev": "tsx workers/server.ts",
-    "helius:mcp": "helius-mcp"
+    "helius:mcp": "helius-mcp",
+    "goonclaw:autonomous": "tsx services/goonclaw-automaton/runtime-loop.ts"
   },
   "engines": {
     "node": ">=20"
@@ -26,6 +27,10 @@
     "@payloadcms/next": "^3.79.1",
     "@pump-fun/agent-payments-sdk": "^3.0.2",
     "@pump-fun/pump-sdk": "^1.31.0",
+    "@solana-agent-kit/adapter-mcp": "^2.0.7",
+    "@solana-agent-kit/plugin-defi": "^2.0.8",
+    "@solana-agent-kit/plugin-misc": "^2.0.6",
+    "@solana-agent-kit/plugin-token": "^2.0.9",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-phantom": "^0.9.28",
@@ -46,6 +51,8 @@
     "payload": "^3.79.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "solana-agent-kit": "^2.0.10",
+    "solana-mcp": "^1.0.1",
     "tweetnacl": "^1.0.3",
     "zod": "^3.25.76"
   },

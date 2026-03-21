@@ -25,6 +25,14 @@ const rawServerEnvSchema = z.object({
   ACCESS_CNFT_TREE: z.string().optional(),
   ACCESS_CNFT_AUTHORITY_SECRET: z.string().optional(),
   GOONCLAW_TOKEN_MINT: z.string().optional(),
+  GOONCLAW_OWNER_WALLET: z.string().optional(),
+  GOONCLAW_AGENT_WALLET_SECRET: z.string().optional(),
+  GOONCLAW_AGENT_RESERVE_FLOOR_SOL: z.string().optional(),
+  GOONCLAW_SETTLEMENT_INTERVAL_MINUTES: z.string().optional(),
+  GOONCLAW_AUTONOMOUS_ENABLED: z.string().optional(),
+  GOONCLAW_PUBLIC_TRACE_MODE: z.string().optional(),
+  GOONCLAW_SKILLS_DIR: z.string().optional(),
+  GOONCLAW_AGENT_CONSTITUTION_PATH: z.string().optional(),
   GOONCLAW_BURN_AMOUNT_RAW: z.string().optional(),
   GOONCLAW_TOKEN_DECIMALS: z.string().optional(),
   BAGSTROKE_TOKEN_MINT: z.string().optional(),
@@ -76,6 +84,14 @@ const resolvedServerEnvSchema = z.object({
   ACCESS_CNFT_TREE: z.string(),
   ACCESS_CNFT_AUTHORITY_SECRET: z.string(),
   BAGSTROKE_TOKEN_MINT: z.string(),
+  GOONCLAW_OWNER_WALLET: z.string().min(1),
+  GOONCLAW_AGENT_WALLET_SECRET: z.string(),
+  GOONCLAW_AGENT_RESERVE_FLOOR_SOL: z.string().min(1),
+  GOONCLAW_SETTLEMENT_INTERVAL_MINUTES: z.string().min(1),
+  GOONCLAW_AUTONOMOUS_ENABLED: z.enum(["true", "false"]),
+  GOONCLAW_PUBLIC_TRACE_MODE: z.string().min(1),
+  GOONCLAW_SKILLS_DIR: z.string().min(1),
+  GOONCLAW_AGENT_CONSTITUTION_PATH: z.string().min(1),
   BAGSTROKE_BURN_AMOUNT_RAW: z.string().min(1),
   BAGSTROKE_TOKEN_DECIMALS: z.string().min(1),
   LAUNCHONOMICS_TOKEN_MINT: z.string(),
@@ -279,6 +295,26 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
       raw.GOONCLAW_TOKEN_MINT?.trim() ||
       raw.BAGSTROKE_TOKEN_MINT?.trim() ||
       DEFAULT_PUMP_TOKEN_MINT,
+    GOONCLAW_OWNER_WALLET:
+      raw.GOONCLAW_OWNER_WALLET?.trim() ||
+      raw.TREASURY_WALLET?.trim() ||
+      "HQhD7ZRMp4jv2NFdN26nJ5NCWySQD6nQM9KoG5doapDi",
+    GOONCLAW_AGENT_WALLET_SECRET:
+      raw.GOONCLAW_AGENT_WALLET_SECRET?.trim() || "",
+    GOONCLAW_AGENT_RESERVE_FLOOR_SOL:
+      raw.GOONCLAW_AGENT_RESERVE_FLOOR_SOL?.trim() || "0.069420",
+    GOONCLAW_SETTLEMENT_INTERVAL_MINUTES:
+      raw.GOONCLAW_SETTLEMENT_INTERVAL_MINUTES?.trim() || "15",
+    GOONCLAW_AUTONOMOUS_ENABLED:
+      raw.GOONCLAW_AUTONOMOUS_ENABLED?.trim().toLowerCase() || "true",
+    GOONCLAW_PUBLIC_TRACE_MODE:
+      raw.GOONCLAW_PUBLIC_TRACE_MODE?.trim() || "maximum-available",
+    GOONCLAW_SKILLS_DIR:
+      raw.GOONCLAW_SKILLS_DIR?.trim() ||
+      "services/goonclaw-automaton/vendor/sendaifun-skills-bundle/skills",
+    GOONCLAW_AGENT_CONSTITUTION_PATH:
+      raw.GOONCLAW_AGENT_CONSTITUTION_PATH?.trim() ||
+      "services/goonclaw-automaton/constitution.md",
     BAGSTROKE_BURN_AMOUNT_RAW:
       raw.GOONCLAW_BURN_AMOUNT_RAW?.trim() ||
       raw.BAGSTROKE_BURN_AMOUNT_RAW?.trim() ||

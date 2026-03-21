@@ -23,8 +23,9 @@
   --accent-soft-legacy: var(--accent-soft);
   --muted: var(--text-dim);
   --text-subtle: #ddd1c2;
-  --dashboard-triple-panel-height: min(68vh, 42rem);
-  --dashboard-feed-panel-height: min(110vh, 68rem);
+  --dashboard-primary-panel-height: min(74vh, 46rem);
+  --dashboard-feed-panel-height: min(88vh, 56rem);
+  --dashboard-fullwidth-panel-height: min(72vh, 44rem);
 }
 
 @theme inline {
@@ -353,13 +354,13 @@ textarea {
   grid-template-columns: minmax(22rem, 0.95fr) minmax(0, 1.15fr);
 }
 
-.dashboard-grid-triple {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.dashboard-grid-primary-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
-  grid-auto-rows: minmax(0, var(--dashboard-triple-panel-height));
+  grid-auto-rows: minmax(0, var(--dashboard-primary-panel-height));
 }
 
-.dashboard-grid-triple > .panel {
+.dashboard-grid-primary-row > .panel {
   height: 100%;
   min-height: 0;
 }
@@ -368,7 +369,16 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.dashboard-grid-fullwidth {
+  grid-template-columns: 1fr;
+}
+
+.dashboard-grid-fullwidth > .panel {
+  min-height: var(--dashboard-fullwidth-panel-height);
+}
+
 .dashboard-grid-feed-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
 }
 
@@ -592,7 +602,7 @@ textarea {
     inset 0 20px 40px rgba(242, 161, 74, 0.04);
 }
 
-.dashboard-grid-triple .chart-surface {
+.dashboard-grid-primary-row .chart-surface {
   height: 100%;
   min-height: 0;
 }
@@ -760,7 +770,7 @@ textarea {
   padding-right: 0.35rem;
 }
 
-.dashboard-grid-triple .news-panel {
+.dashboard-grid-primary-row .news-panel {
   overflow: hidden;
 }
 
@@ -769,12 +779,12 @@ textarea {
   flex: 0 0 auto;
 }
 
-.dashboard-grid-triple .media-panel {
+.dashboard-grid-primary-row .media-panel {
   overflow: hidden;
 }
 
-.dashboard-grid-triple .media-panel .embed-shell,
-.dashboard-grid-triple .media-panel .embed-placeholder {
+.dashboard-grid-primary-row .media-panel .embed-shell,
+.dashboard-grid-primary-row .media-panel .embed-placeholder {
   flex: 1 1 auto;
   min-height: 12rem;
   aspect-ratio: auto;
@@ -1149,6 +1159,10 @@ textarea {
   margin-bottom: 0.75rem;
 }
 
+.dashboard-faq .faq-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .public-stream-settings.embedded {
   border: 0;
   background: transparent;
@@ -1191,8 +1205,9 @@ textarea {
   .hero,
   .dashboard-grid,
   .gate-grid,
-  .dashboard-grid-triple,
+  .dashboard-grid-primary-row,
   .dashboard-grid-secondary,
+  .dashboard-grid-fullwidth,
   .surface-grid,
   .rail-grid {
     grid-template-columns: 1fr;
@@ -1203,16 +1218,16 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-grid-triple {
+  .dashboard-grid-primary-row {
     grid-auto-rows: auto;
   }
 
-  .dashboard-grid-triple > .panel {
+  .dashboard-grid-primary-row > .panel {
     height: auto;
     max-height: min(72vh, 42rem);
   }
 
-  .dashboard-grid-triple .chart-surface {
+  .dashboard-grid-primary-row .chart-surface {
     height: auto;
     min-height: min(56vh, 28rem);
   }
@@ -1249,16 +1264,20 @@ textarea {
     min-height: 20rem;
   }
 
-  .dashboard-grid-triple > .panel {
+  .dashboard-grid-primary-row > .panel {
     max-height: none;
   }
 
-  .dashboard-grid-triple .chart-surface {
+  .dashboard-grid-primary-row .chart-surface {
     min-height: min(52vh, 22rem);
   }
 
   .dashboard-grid-feed-row > .panel {
     min-height: min(80vh, 48rem);
+  }
+
+  .dashboard-faq .faq-list {
+    grid-template-columns: 1fr;
   }
 
   .site-nav {

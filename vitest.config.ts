@@ -14,6 +14,11 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/.next/**",
+      "**/services/goonclaw-automaton/vendor/**",
+      "**/vendor_automaton_probe/**",
+      "**/vendor_sendaifun_skills_probe/**",
+      "**/vendor_solana_agent_kit_probe/**",
+      "**/vendor_solana_mcp_probe/**",
       "**/Refs/**",
       "**/PUMPREF/**",
       "**/HELIUSREF/**",

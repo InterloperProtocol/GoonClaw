@@ -67,7 +67,7 @@ export function GoonStreamsClient() {
     <div className="app-shell">
       <SiteNav />
       <RouteHeader
-        eyebrow="GoonStreams"
+        eyebrow="GoonConnect"
         title="What is actually live right now."
         summary="Browse the public guest-session panels that are currently running a live device session. Open any stream to watch the chart, media, and session state in read-only mode."
         badges={[
@@ -95,7 +95,7 @@ export function GoonStreamsClient() {
 
       {loading ? (
         <section className="panel">
-          <p className="empty-state">Checking which GoonStreams are live right now.</p>
+          <p className="empty-state">Checking which GoonConnect streams are live right now.</p>
         </section>
       ) : items.length ? (
         <section className="surface-grid">

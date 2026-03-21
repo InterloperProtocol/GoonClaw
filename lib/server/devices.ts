@@ -1,5 +1,6 @@
 import { AutoblowDevice, HandyDevice } from "ive-connect";
 
+import { assertSafeRestEndpointUrl } from "@/lib/server/request-security";
 import { DeviceCredentials, DeviceProfile, FunscriptPayload, LiveCommand } from "@/lib/types";
 
 const AUTOBLOW_LATENCY_API = "https://latency.autoblowapi.com";
@@ -238,6 +239,7 @@ class RestRuntimeAdapter implements RuntimeAdapter {
   readonly type = "rest";
   readonly supportsLive = true;
   readonly supportsScript = false;
+  private endpointUrl: string | null = null;
 
   constructor(public readonly id: string, private readonly credentials: DeviceCredentials) {}
 
@@ -245,6 +247,8 @@ class RestRuntimeAdapter implements RuntimeAdapter {
     if (!this.credentials.endpointUrl) {
       throw new Error("REST device endpoint URL is required");
     }
+
+    this.endpointUrl = await assertSafeRestEndpointUrl(this.credentials.endpointUrl);
   }
 
   private buildHeaders() {
@@ -264,7 +268,7 @@ class RestRuntimeAdapter implements RuntimeAdapter {
   async stop() {
     await this.connect();
     await requestDevice(
-      this.credentials.endpointUrl!,
+      this.endpointUrl!,
       {
         method: "POST",
         headers: this.buildHeaders(),
@@ -279,7 +283,7 @@ class RestRuntimeAdapter implements RuntimeAdapter {
 
   async getStatus() {
     await this.connect();
-    const response = await fetch(this.credentials.endpointUrl!, {
+    const response = await fetch(this.endpointUrl!, {
       method: "OPTIONS",
       headers: this.buildHeaders(),
     });
@@ -290,7 +294,7 @@ class RestRuntimeAdapter implements RuntimeAdapter {
 
     return {
       connected: true,
-      endpointUrl: this.credentials.endpointUrl,
+      endpointUrl: this.endpointUrl,
       status: response.status,
     };
   }
@@ -302,7 +306,7 @@ class RestRuntimeAdapter implements RuntimeAdapter {
   async updateLive(command: LiveCommand) {
     await this.connect();
     await requestDevice(
-      this.credentials.endpointUrl!,
+      this.endpointUrl!,
       {
         method: "POST",
         headers: this.buildHeaders(),

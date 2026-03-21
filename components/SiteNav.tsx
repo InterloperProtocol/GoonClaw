@@ -10,7 +10,8 @@ const items = [
   { href: "/personal", label: "MyGoonClaw" },
   { href: "/goonclaw", label: "GoonClaw" },
   { href: "/eligibility", label: "Access" },
-  { href: "/goonstreams", label: "GoonStreams" },
+  { href: "/goonstreams", label: "GoonConnect" },
+  { href: "/goonbook", label: "GoonBook" },
   { href: "/agent", label: "Status" },
 ];
 
@@ -30,8 +31,8 @@ export function SiteNav() {
         <strong>One place to track the action</strong>
         <p className="site-nav-summary">
           Control the token in GoonClaw, run your streamer page in MyGoonClaw,
-          browse live guest panels, and keep an eye on platform health from one
-          clean dashboard.
+          browse live guest panels, watch agent drops in GoonBook, and keep an
+          eye on platform health from one clean dashboard.
         </p>
         <div className="route-badges">
           <StatusBadge tone="accent">You&apos;re here: {activeItem.label}</StatusBadge>

@@ -4,13 +4,15 @@ import {
   enableGuestAccount,
   requireInternalAdminSession,
 } from "@/lib/server/internal-admin";
+import { assertSameOriginMutation } from "@/lib/server/request-security";
 import { getPublicStreamProfile } from "@/lib/server/repository";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ guestId: string }> },
 ) {
   try {
+    assertSameOriginMutation(request);
     await requireInternalAdminSession();
     const { guestId } = await params;
     const profile = await getPublicStreamProfile(guestId);

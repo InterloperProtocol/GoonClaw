@@ -4,12 +4,14 @@ import {
   requireInternalAdminSession,
   stopSessionFromAdmin,
 } from "@/lib/server/internal-admin";
+import { assertSameOriginMutation } from "@/lib/server/request-security";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    assertSameOriginMutation(request);
     await requireInternalAdminSession();
     const { sessionId } = await params;
     const item = await stopSessionFromAdmin(sessionId);

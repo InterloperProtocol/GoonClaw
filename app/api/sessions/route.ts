@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getOrCreateGuestSession } from "@/lib/server/guest";
 import { assertGuestEnabled } from "@/lib/server/internal-admin";
+import { assertSameOriginMutation } from "@/lib/server/request-security";
 import { listSessions } from "@/lib/server/repository";
 import { dispatchSessionStart, dispatchSessionStop } from "@/lib/server/worker-client";
 import { SessionStartInput } from "@/lib/types";
@@ -25,6 +26,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    assertSameOriginMutation(request);
     const session = await getOrCreateGuestSession();
     await assertGuestEnabled(session.id);
 
@@ -57,7 +59,10 @@ export async function POST(request: Request) {
         error:
           error instanceof Error ? error.message : "Failed to start session",
       },
-      { status: 500 },
+      {
+        status:
+          error instanceof Error && error.message.includes("Cross-") ? 403 : 500,
+      },
     );
   }
 }

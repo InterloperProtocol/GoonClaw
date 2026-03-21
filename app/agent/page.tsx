@@ -1,4 +1,4 @@
-import { AgentOpsPanel } from "@/components/AgentOpsPanel";
+import { AutonomousAgentPanel } from "@/components/AutonomousAgentPanel";
 import { FaqPanel } from "@/components/FaqPanel";
 import { SiteNav } from "@/components/SiteNav";
 import { RouteHeader } from "@/components/ui/RouteHeader";
@@ -12,53 +12,64 @@ export default function AgentPage() {
       <SiteNav />
 
       <RouteHeader
-        eyebrow="Platform status"
-        title="Read-only status for the private operator stack."
+        eyebrow="Autonomous status"
+        title="Public heartbeat wall for the autonomous GoonClaw runtime."
         summary={
           <>
-            This page keeps the behind-the-scenes essentials in one place, from
-            access delivery and payments to AI services and supporting tools.
-            It is status-only. Private control stays in VS Code, not in the guest UI.
+            Watch the live reserve posture, revenue routing, constitution hash,
+            tool activity, and recent decisions without exposing any private
+            controls. Public users can observe the runtime, but only the hidden
+            owner dashboard can intervene in the human-agent business partnership.
           </>
         }
         badges={[
           <StatusBadge key="readonly" tone="accent">
             Read-only
           </StatusBadge>,
-          <StatusBadge key="health" tone="success">
-            Service health
+          <StatusBadge key="heartbeat" tone="success">
+            Heartbeat
           </StatusBadge>,
-          <StatusBadge key="audit" tone="neutral">
-            Payments
+          <StatusBadge key="treasury" tone="neutral">
+            Treasury
           </StatusBadge>,
-          <StatusBadge key="manual" tone="warning">
-            Access delivery
+          <StatusBadge key="trace" tone="warning">
+            Public trace
           </StatusBadge>,
           <StatusBadge key="runtime" tone="accent">
-            AI services
+            Vertex-only
           </StatusBadge>,
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
-              <p className="eyebrow">Access delivery</p>
-              <strong>Sent after review</strong>
-              <span>Wallet access is checked before a pass is delivered.</span>
+              <p className="eyebrow">Heartbeat</p>
+              <strong>Autonomous loop</strong>
+              <span>Public status updates trail the active runtime heartbeat and policy engine.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Refresh</p>
-              <strong>30 second cadence</strong>
-              <span>Platform health stays current without reloading the page.</span>
+              <p className="eyebrow">Reserve floor</p>
+              <strong>0.069420 SOL</strong>
+              <span>Discretionary actions are denied if the reserve floor would be breached.</span>
+            </div>
+            <div className="rail-card">
+              <p className="eyebrow">Trace mode</p>
+              <strong>Maximum available</strong>
+              <span>Prompt-visible reasoning, tool calls, and policy decisions are published here.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Control surface</p>
-              <strong>VS Code only</strong>
-              <span>Guests can view status here, but they cannot use the private agent.</span>
+              <strong>Hidden owner dashboard</strong>
+              <span>Guests can observe status, but only the private admin path can pause, settle, or post on behalf of the agent.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Purpose</p>
-              <strong>Behind-the-scenes clarity</strong>
-              <span>Payments, logs, and readiness without exposing private controls.</span>
+              <p className="eyebrow">Inference</p>
+              <strong>Vertex AI Gemini only</strong>
+              <span>GoonClaw stays on Google Cloud infrastructure with Vertex as the sole model backend.</span>
+            </div>
+            <div className="rail-card">
+              <p className="eyebrow">Settlement</p>
+              <strong>30 second cadence</strong>
+              <span>The wall refreshes automatically so heartbeat, treasury, and decision traces stay current.</span>
             </div>
           </div>
         }
@@ -66,7 +77,7 @@ export default function AgentPage() {
 
       <section className="dashboard-grid dashboard-grid-secondary">
         <div className="dashboard-column">
-          <AgentOpsPanel />
+          <AutonomousAgentPanel />
         </div>
         <div className="dashboard-column">
           <FaqPanel />

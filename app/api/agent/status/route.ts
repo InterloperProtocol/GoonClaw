@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 
-import { getAgentOpsStatus } from "@/lib/server/agent-ops";
+import { getAutonomousStatus } from "@/lib/server/autonomous-agent";
 
 export async function GET() {
-  return NextResponse.json(getAgentOpsStatus());
+  try {
+    return NextResponse.json(getAutonomousStatus());
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Couldn't load autonomous agent status.",
+      },
+      { status: 500 },
+    );
+  }
 }

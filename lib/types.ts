@@ -156,6 +156,43 @@ export interface PublicStreamPageState {
   recentSessions: SessionRecord[];
 }
 
+export interface GoonBookProfile {
+  id: string;
+  handle: string;
+  displayName: string;
+  bio: string;
+  avatarUrl?: string | null;
+  accentLabel: string;
+  subscriptionLabel: string;
+  isAutonomous: boolean;
+}
+
+export interface GoonBookPostRecord {
+  id: string;
+  agentId: string;
+  body: string;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoonBookPost {
+  id: string;
+  agentId: string;
+  handle: string;
+  displayName: string;
+  bio: string;
+  accentLabel: string;
+  subscriptionLabel: string;
+  isAutonomous: boolean;
+  body: string;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuthNonceRecord {
   nonce: string;
   wallet: string;
@@ -271,6 +308,160 @@ export interface AgentOpsStatus {
   cnftAuthorityConfigured: boolean;
   modelRuntime: AgentModelStatus;
   references: ReferenceStatus[];
+}
+
+export type AutonomousRuntimePhase =
+  | "booting"
+  | "awake"
+  | "sleeping"
+  | "paused"
+  | "settling"
+  | "liquidating"
+  | "degraded";
+
+export type AutonomousRevenueClass =
+  | "creator_fee"
+  | "goonclaw_chartsync"
+  | "third_party_chartsync_commission";
+
+export type AutonomousFeedEventKind =
+  | "heartbeat"
+  | "decision"
+  | "policy"
+  | "revenue"
+  | "trade"
+  | "burn"
+  | "control"
+  | "self_mod"
+  | "replication";
+
+export type AutonomousControlAction =
+  | "wake"
+  | "pause"
+  | "resume"
+  | "force_settle"
+  | "force_liquidate"
+  | "approve_self_mod"
+  | "reject_self_mod"
+  | "trigger_replication"
+  | "halt_replication";
+
+export interface AutonomousRevenuePolicy {
+  revenueClass: AutonomousRevenueClass;
+  ownerPct: number;
+  burnPct: number;
+  reservePct: number;
+  tradingPct: number;
+  sessionTradePct: number;
+  notes: string;
+}
+
+export interface AutonomousRevenueBuckets {
+  ownerUsdc: number;
+  burnUsdc: number;
+  reserveUsdc: number;
+  tradingUsdc: number;
+  sessionTradeUsdc: number;
+  totalProcessedUsdc: number;
+}
+
+export interface AutonomousTradePosition {
+  id: string;
+  status: "open" | "closed";
+  source: AutonomousRevenueClass | "reserve";
+  marketMint: string;
+  symbol: string;
+  entryUsdc: number;
+  currentUsdc: number;
+  rationale: string;
+  openedAt: string;
+  closedAt?: string;
+  exitUsdc?: number;
+}
+
+export interface AutonomousFeedEvent {
+  id: string;
+  createdAt: string;
+  kind: AutonomousFeedEventKind;
+  title: string;
+  detail: string;
+  rawTrace: string[];
+}
+
+export interface AutonomousTransferGuardrails {
+  arbitraryTransfersBlocked: boolean;
+  allowedDestinations: string[];
+  blockedDestinationClasses: string[];
+  notes: string;
+}
+
+export interface AutonomousToolingStatus {
+  vertexOnly: boolean;
+  solanaAgentKitConfigured: boolean;
+  solanaMcpConfigured: boolean;
+  agentWalletAddress: string | null;
+  loadedSkillCount: number;
+  loadedActionCount: number;
+  availableActions: string[];
+  blockedActionNames: string[];
+}
+
+export interface AutonomousControlState {
+  paused: boolean;
+  pauseReason: string | null;
+  lastAction: AutonomousControlAction | null;
+  lastActionAt: string | null;
+}
+
+export interface AutonomousTreasuryStatus {
+  treasuryWallet: string;
+  ownerWallet: string;
+  reserveFloorSol: number;
+  reserveHealthy: boolean;
+  reserveSol: number;
+  usdcBalance: number;
+  goonclawTokenMint: string;
+  transferGuardrails: AutonomousTransferGuardrails;
+}
+
+export interface AutonomousReplicationStatus {
+  enabled: boolean;
+  childCount: number;
+  lastEventAt: string | null;
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousSelfModificationStatus {
+  enabled: boolean;
+  lastEventAt: string | null;
+  auditProtected: boolean;
+  pendingProposal?: string | null;
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousAgentStatus {
+  agentId: string;
+  name: string;
+  purpose: string;
+  constitutionPath: string;
+  constitutionHash: string;
+  runtimePhase: AutonomousRuntimePhase;
+  heartbeatAt: string;
+  wakeReason: string;
+  latestPolicyDecision: string;
+  publicTraceMode: string;
+  modelRuntime: AgentModelStatus;
+  tooling: AutonomousToolingStatus;
+  control: AutonomousControlState;
+  treasury: AutonomousTreasuryStatus;
+  revenuePolicies: AutonomousRevenuePolicy[];
+  revenueBuckets: AutonomousRevenueBuckets;
+  positions: AutonomousTradePosition[];
+  goals: string[];
+  replication: AutonomousReplicationStatus;
+  selfModification: AutonomousSelfModificationStatus;
+  recentFeed: AutonomousFeedEvent[];
+  feedSize: number;
 }
 
 export interface LaunchonomicsWindowSet {

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MediaEmbedPanel } from "@/components/MediaEmbedPanel";
 import { NewsPanel } from "@/components/NewsPanel";
 import { PriceChart } from "@/components/PriceChart";
-import { PublicChatPanel } from "@/components/PublicChatPanel";
+import { AutonomousStatusPreviewPanel } from "@/components/AutonomousStatusPreviewPanel";
 import { SiteNav } from "@/components/SiteNav";
 import { TrenchesPanel } from "@/components/TrenchesPanel";
 import { RouteHeader } from "@/components/ui/RouteHeader";
@@ -244,7 +244,11 @@ export function LivestreamClient() {
 
       <section className="dashboard-grid dashboard-grid-secondary">
         <TrenchesPanel />
-        <PublicChatPanel />
+        <AutonomousStatusPreviewPanel
+          eyebrow="Autonomous room status"
+          title="The room mirrors GoonClaw autonomously"
+          description="The public queue still runs here, but guests can no longer chat with GoonClaw. They can only observe the runtime and pay for stream actions."
+        />
       </section>
 
       <section className="dashboard-grid">

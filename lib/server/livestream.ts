@@ -201,6 +201,16 @@ async function maybeFinishActiveRequest(request: LivestreamRequestRecord) {
   return true;
 }
 
+async function shouldTreatRequestAsFinished(request: LivestreamRequestRecord) {
+  const session = request.sessionId ? await getSession(request.sessionId) : null;
+  const expiresAtMs = request.expiresAt ? new Date(request.expiresAt).getTime() : 0;
+  const expiredByTime = expiresAtMs > 0 && expiresAtMs <= Date.now();
+  const sessionEnded =
+    !session || session.status === "stopped" || session.status === "error";
+
+  return expiredByTime || sessionEnded;
+}
+
 async function preemptActiveRequest(request: LivestreamRequestRecord) {
   if (request.sessionId) {
     await dispatchSessionStop(request.sessionId).catch(() => null);
@@ -296,8 +306,6 @@ function serializeLivestreamRequest(request: LivestreamRequestRecord) {
 }
 
 export async function getLivestreamState(guestId: string) {
-  await syncLivestreamQueue();
-
   const env = getServerEnv();
   const publicEnv = getPublicEnv();
   const [requests, recent] = await Promise.all([
@@ -305,11 +313,19 @@ export async function getLivestreamState(guestId: string) {
     listLivestreamRequestsForGuest(guestId, 5),
   ]);
 
-  const current =
+  const persistedCurrent =
     requests.find((request) => request.status === "active") ?? null;
-  const queue = getActivationQueue(requests).filter(
-    (request) => request.id !== current?.id,
-  );
+  const currentFinished = persistedCurrent
+    ? await shouldTreatRequestAsFinished(persistedCurrent)
+    : false;
+  const current = currentFinished ? null : persistedCurrent;
+  const queue = getActivationQueue(requests).filter((request) => {
+    if (request.id === persistedCurrent?.id) {
+      return false;
+    }
+
+    return true;
+  });
 
   return {
     current: current ? serializeLivestreamRequest(current) : null,

@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { HomeEligibilityCta } from "@/components/HomeEligibilityCta";
 import { MediaEmbedPanel } from "@/components/MediaEmbedPanel";
 import { NewsPanel } from "@/components/NewsPanel";
 import { PriceChart } from "@/components/PriceChart";
-import { PublicChatPanel } from "@/components/PublicChatPanel";
+import { AutonomousStatusPreviewPanel } from "@/components/AutonomousStatusPreviewPanel";
 import { PublicStreamSettingsPanel } from "@/components/PublicStreamSettingsPanel";
 import { SiteNav } from "@/components/SiteNav";
 import { TrenchesPanel } from "@/components/TrenchesPanel";
-import { RouteHeader } from "@/components/ui/RouteHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DEFAULT_PUMP_TOKEN_MINT } from "@/lib/token-defaults";
 import {
@@ -87,6 +87,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
   const [publicStreamUrl, setPublicStreamUrl] = useState<string | null>(null);
   const [publicStreamSlug, setPublicStreamSlug] = useState("");
   const [publicMediaUrl, setPublicMediaUrl] = useState(defaultMediaUrl);
+  const [chartLookupAddress, setChartLookupAddress] = useState("");
   const [mode, setMode] = useState<SessionMode>("live");
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -141,6 +142,65 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
       timeStyle: "short",
     });
   }, [activeSession?.updatedAt, sessions]);
+  const activeChartAddress = chartLookupAddress.trim() || focusContractAddress;
+  const pageFaqItems = useMemo(
+    () =>
+      isTokenControlPage
+        ? [
+            {
+              question: "What is GoonClaw for?",
+              answer:
+                "GoonClaw controls the shared token view and pushes that focus across guest-facing sessions so the broadcast stays consistent.",
+            },
+            {
+              question: "How does token focus work?",
+              answer:
+                "The current token mint stays mirrored into the shared session workspace, and your public streamer page can inherit that focus automatically.",
+            },
+            {
+              question: "What mode am I in?",
+              answer:
+                mode === "live"
+                  ? "Live tracking is active, so the dashboard is ready to follow the live market move."
+                  : "Guided pattern mode is active, so the dashboard will run a generated pattern instead of pure live tracking.",
+            },
+            {
+              question: "What was the latest activity?",
+              answer: lastActivityLabel,
+            },
+          ]
+        : [
+            {
+              question: "What is MyGoonClaw for?",
+              answer:
+                "MyGoonClaw runs your streamer setup and keeps the guest-facing panel in sync with your saved devices, media, and public page settings.",
+            },
+            {
+              question: "What is my streamer status?",
+              answer: publicStream?.isPublic
+                ? `Your public streamer page is live at @${publicStream.slug}.`
+                : "Your streamer page is still a private draft until you publish it.",
+            },
+            {
+              question: "What mode am I in?",
+              answer:
+                mode === "live"
+                  ? "Live tracking is active, so your setup is ready to follow the live market move."
+                  : "Guided pattern mode is active, so your setup will run a generated pattern instead of pure live tracking.",
+            },
+            {
+              question: "What was the latest activity?",
+              answer: lastActivityLabel,
+            },
+          ],
+    [
+      isTokenControlPage,
+      lastActivityLabel,
+      mode,
+      publicStream?.isPublic,
+      publicStream?.slug,
+    ],
+  );
 
   async function refreshDevices(preferredDeviceId?: string) {
     const response = await fetch("/api/devices");
@@ -521,72 +581,12 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
   return (
     <div className="app-shell">
       <SiteNav />
-      <RouteHeader
-        eyebrow={isTokenControlPage ? "GoonClaw" : "MyGoonClaw"}
-        title={
-          isTokenControlPage
-            ? "Control the token view and push it across your guest sessions."
-            : "Run your streamer setup and keep your guest-facing panel in sync."
-        }
-        summary={
-          isTokenControlPage
-            ? "Use the same dashboard layout as MyGoonClaw, but keep token control here so the broadcast focus stays consistent everywhere."
-            : "Use the same session workspace as GoonClaw, then sign up as a streamer and make your guest-facing panel public when you are ready."
-        }
-        badges={
-          isTokenControlPage
-            ? ["Token control", "Saved setups", "Shared session workspace"]
-            : ["Streamer signup", "Saved setups", "Shared session workspace"]
-        }
-        rail={
-          <div className="rail-grid">
-            <div className="rail-card">
-              <p className="eyebrow">Session</p>
-              <strong>{activeSession ? activeSession.status : "Ready"}</strong>
-              <span>See your current session state before you start anything new.</span>
-            </div>
-            <div className="rail-card">
-              <p className="eyebrow">
-                {isTokenControlPage ? "Token focus" : "Streamer status"}
-              </p>
-              <strong>
-                {isTokenControlPage
-                  ? `${contractAddress.slice(0, 4)}...${contractAddress.slice(-4)}`
-                  : publicStream?.isPublic
-                    ? `@${publicStream.slug}`
-                    : "Private draft"}
-              </strong>
-              <span>
-                {isTokenControlPage
-                  ? "This token is the shared focus mirrored into MyGoonClaw."
-                  : publicStream?.isPublic
-                    ? "Your public guest page is live."
-                    : "Create your streamer page when you are ready."}
-              </span>
-            </div>
-            <div className="rail-card">
-              <p className="eyebrow">Mode</p>
-              <strong>{mode === "live" ? "Live tracking" : "Guided pattern"}</strong>
-              <span>Switch between a live session and a generated pattern.</span>
-            </div>
-            <div className="rail-card">
-              <p className="eyebrow">Last activity</p>
-              <strong>{lastActivityLabel}</strong>
-              <span>Your latest session updates stay easy to spot.</span>
-            </div>
-          </div>
-        }
-      />
 
       {notice ? <p className="toast-banner">{notice}</p> : null}
       {error ? <p className="error-banner">{error}</p> : null}
 
-      <section className="dashboard-grid dashboard-grid-triple">
-        <PriceChart contractAddress={focusContractAddress} />
-        <PublicChatPanel
-          eyebrow="Agent"
-          title="GoonClaw agent chatbot"
-        />
+      <section className="dashboard-grid dashboard-grid-primary-row">
+        <PriceChart contractAddress={activeChartAddress} />
         <MediaEmbedPanel
           title="Video or stream"
           defaultUrl={publicStream?.mediaUrl || defaultMediaUrl}
@@ -595,24 +595,39 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
         />
       </section>
 
-      <section className="dashboard-grid dashboard-grid-secondary dashboard-grid-feed-row">
-        <TrenchesPanel
-          eyebrow="Monitoring the Trenches"
-          title="Monitoring the Trenches"
-        />
-        <NewsPanel
-          title="Monitoring the Situation"
-          defaultCategory="solana"
-        />
-      </section>
-
-      <section className="dashboard-grid dashboard-grid-secondary">
+      <section className="dashboard-grid dashboard-grid-primary-row">
         <section className="panel">
           <div className="panel-header">
             <div>
               <p className="eyebrow">Device connect</p>
-              <h2>Devices and connections</h2>
+              <h2>Devices and chart control</h2>
             </div>
+          </div>
+
+          <div className="field-grid">
+            <label className="field">
+              <span>Chart lookup</span>
+              <input
+                value={chartLookupAddress}
+                onChange={(event) => setChartLookupAddress(event.target.value)}
+                placeholder={focusContractAddress}
+              />
+            </label>
+            <div className="summary-card">
+              <span>Current chart</span>
+              <strong>{activeChartAddress}</strong>
+              <p>Preview any token chart here even before a device is connected.</p>
+            </div>
+          </div>
+
+          <div className="button-row">
+            <button
+              className="button button-ghost small"
+              onClick={() => setChartLookupAddress("")}
+              type="button"
+            >
+              Follow session chart
+            </button>
           </div>
 
           {devices.length ? (
@@ -762,6 +777,25 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
           </div>
         </section>
 
+        <AutonomousStatusPreviewPanel
+          eyebrow="Agent status"
+          title="GoonClaw is autonomous"
+          description="This slot now mirrors the public status wall instead of accepting prompts. Guests can watch the heartbeat, but only the hidden owner dashboard can intervene."
+        />
+      </section>
+
+      <section className="dashboard-grid dashboard-grid-feed-row">
+        <NewsPanel
+          title="Monitoring the Situation"
+          defaultCategory="solana"
+        />
+        <TrenchesPanel
+          eyebrow="Monitoring the Trenches"
+          title="Monitoring the Trenches"
+        />
+      </section>
+
+      <section className="dashboard-grid dashboard-grid-fullwidth">
         <section className="panel">
           <div className="panel-header">
             <div>
@@ -916,21 +950,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
                 </div>
               </dl>
             </>
-          ) : (
-            <div className="go-live-subsection">
-              <PublicStreamSettingsPanel
-                slug={publicStreamSlug}
-                defaultContractAddress={contractAddress}
-                isPublic={Boolean(publicStream?.isPublic)}
-                saving={loading === "public"}
-                publicUrl={publicStreamUrl}
-                embedded
-                onSlugChange={setPublicStreamSlug}
-                onSave={() => void savePublicStreamSettings(true)}
-                onMakePrivate={() => void savePublicStreamSettings(false)}
-              />
-            </div>
-          )}
+          ) : null}
 
           <div className="go-live-subsection">
             <div className="panel-header go-live-subheader">
@@ -974,6 +994,43 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
             )}
           </div>
         </section>
+      </section>
+
+      <section className="dashboard-grid dashboard-grid-secondary">
+        <PublicStreamSettingsPanel
+          slug={publicStreamSlug}
+          defaultContractAddress={contractAddress}
+          isPublic={Boolean(publicStream?.isPublic)}
+          saving={loading === "public"}
+          publicUrl={publicStreamUrl}
+          embedded={false}
+          onSlugChange={setPublicStreamSlug}
+          onSave={() => void savePublicStreamSettings(true)}
+          onMakePrivate={() => void savePublicStreamSettings(false)}
+        />
+        <HomeEligibilityCta />
+      </section>
+
+      <section className="panel dashboard-faq">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">FAQ</p>
+            <h2>
+              {isTokenControlPage ? "How GoonClaw works" : "How MyGoonClaw works"}
+            </h2>
+          </div>
+        </div>
+        <p className="panel-lead">
+          The old hero details live down here now so the dashboard can stay focused on the live panels first.
+        </p>
+        <div className="faq-list">
+          {pageFaqItems.map((item) => (
+            <article key={item.question} className="faq-item">
+              <strong>{item.question}</strong>
+              <p>{item.answer}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );

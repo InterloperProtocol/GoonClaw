@@ -29,8 +29,8 @@ export function PublicStreamSettingsPanel({
     <section className={embedded ? "public-stream-settings embedded" : "panel public-stream-settings"}>
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Streamer signup</p>
-          <h2>Turn MyGoonClaw into your public stream page</h2>
+          <p className="eyebrow">Register username</p>
+          <h2>Claim your public streamer name</h2>
         </div>
         <StatusBadge tone={isPublic ? "success" : "warning"}>
           {isPublic ? "Public now" : "Private draft"}
@@ -38,33 +38,10 @@ export function PublicStreamSettingsPanel({
       </div>
 
       <p className="panel-lead">
-        Claim your streamer handle here. Your current chart, media, session
-        state, and the token focus from GoonClaw will become viewable to anyone
-        at a shareable page.
+        Save a clean username for your guest-facing page. Your current chart,
+        media, and live session state can be published to a shareable page when
+        you are ready.
       </p>
-
-      <div className="rail-grid">
-        <article className="faq-item">
-          <strong>1. Claim your streamer tag</strong>
-          <p>
-            Pick a clean lowercase tag so people can open your public page fast.
-          </p>
-        </article>
-        <article className="faq-item">
-          <strong>2. Let GoonClaw drive the token</strong>
-          <p>
-            The token focus comes from GoonClaw and carries across your guest
-            sessions here.
-          </p>
-        </article>
-        <article className="faq-item">
-          <strong>3. Keep your media live</strong>
-          <p>
-            Whatever YouTube, Kick, or direct stream link you load in
-            MyGoonClaw is what guests will see on the public page.
-          </p>
-        </article>
-      </div>
 
       <div className="device-form">
         <div className="field-grid">
@@ -77,9 +54,9 @@ export function PublicStreamSettingsPanel({
             />
           </label>
           <div className="summary-card">
-            <span>Token focus from GoonClaw</span>
+            <span>Current shared token focus</span>
             <strong>{defaultContractAddress}</strong>
-            <p>This is the token guests will see unless an active live session overrides it.</p>
+            <p>This token stays ready for guests unless an active live session overrides it.</p>
           </div>
         </div>
 

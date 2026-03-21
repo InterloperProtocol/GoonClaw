@@ -2,9 +2,23 @@ import { NextResponse } from "next/server";
 
 import { getServerEnv } from "@/lib/env";
 import { loginInternalAdmin } from "@/lib/server/internal-admin";
+import {
+  assertSameOriginMutation,
+  enforceRequestRateLimit,
+  getRateLimitRetryAfterSeconds,
+} from "@/lib/server/request-security";
 
 export async function POST(request: Request) {
   try {
+    assertSameOriginMutation(request);
+    enforceRequestRateLimit({
+      discriminator: "hidden-admin-login",
+      max: 5,
+      request,
+      scope: "hidden-admin-auth",
+      windowMs: 10 * 60_000,
+    });
+
     const body = (await request.json()) as {
       password?: string;
       username?: string;
@@ -34,12 +48,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user });
   } catch (error) {
+    const retryAfterSeconds = getRateLimitRetryAfterSeconds(error);
     return NextResponse.json(
       {
         error:
           error instanceof Error ? error.message : "Hidden admin login failed.",
       },
-      { status: 401 },
+      {
+        headers: retryAfterSeconds
+          ? { "Retry-After": String(retryAfterSeconds) }
+          : undefined,
+        status: retryAfterSeconds
+          ? 429
+          : error instanceof Error && error.message.includes("Cross-")
+            ? 403
+            : 401,
+      },
     );
   }
 }

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AutonomousRuntimeAdminPanel } from "@/components/AutonomousRuntimeAdminPanel";
+import { GoonBookAdminPanel } from "@/components/GoonBookAdminPanel";
+
 type AdminUser = {
   displayName: string | null;
   id: string;
@@ -422,6 +425,11 @@ export function InternalAdminDashboard() {
             <p className="empty-state">No guest users have been seen yet.</p>
           )}
         </section>
+      </section>
+
+      <section className="dashboard-grid">
+        <AutonomousRuntimeAdminPanel />
+        <GoonBookAdminPanel />
       </section>
     </div>
   );

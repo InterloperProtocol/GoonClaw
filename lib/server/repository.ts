@@ -1,7 +1,7 @@
 import { cert, getApp, getApps, initializeApp } from "firebase-admin/app";
 import { Firestore, getFirestore } from "firebase-admin/firestore";
 
-import { getServerEnv, isFirebaseConfigured } from "@/lib/env";
+import { getServerEnv, isFirebaseConfigured, isProductionEnv } from "@/lib/env";
 import { encryptJson } from "@/lib/server/crypto";
 import {
   PUBLIC_LIVESTREAM_DEVICE_ID,
@@ -11,6 +11,7 @@ import {
   DeviceProfile,
   DeviceType,
   EntitlementRecord,
+  GoonBookPostRecord,
   LivestreamRequestRecord,
   LivestreamRequestStatus,
   OrderRecord,
@@ -25,6 +26,7 @@ type MemoryShape = {
   entitlements: Map<string, EntitlementRecord>;
   orders: Map<string, OrderRecord>;
   publicStreamProfiles: Map<string, PublicStreamProfile>;
+  goonBookPosts: Map<string, GoonBookPostRecord>;
   sessions: Map<string, SessionRecord>;
   livestreamRequests: Map<string, LivestreamRequestRecord>;
 };
@@ -38,6 +40,7 @@ function getMemoryStore(): MemoryShape {
     global.__goonclawMemory = {
       devices: new Map(),
       entitlements: new Map(),
+      goonBookPosts: new Map(),
       orders: new Map(),
       publicStreamProfiles: new Map(),
       sessions: new Map(),
@@ -93,6 +96,10 @@ function logFirestoreFallback(action: string, error: unknown) {
   );
 }
 
+function shouldAllowMemoryFallback() {
+  return !isProductionEnv();
+}
+
 async function withRepositoryBackend<T>(
   action: string,
   fallback: () => Promise<T> | T,
@@ -107,6 +114,12 @@ async function withRepositoryBackend<T>(
     return await dbAction(db);
   } catch (error) {
     if (isFirestoreUnavailableError(error)) {
+      if (!shouldAllowMemoryFallback()) {
+        throw new Error(
+          `Persistent storage is unavailable during ${action}; refusing unsafe in-memory fallback in production.`,
+        );
+      }
+
       logFirestoreFallback(action, error);
       return await fallback();
     }
@@ -353,6 +366,39 @@ export async function upsertPublicStreamProfile(record: PublicStreamProfile) {
         .collection("publicStreamProfiles")
         .doc(record.guestId)
         .set(record, { merge: true });
+      return record;
+    },
+  );
+}
+
+export async function listGoonBookPosts(limit = 80) {
+  return withRepositoryBackend(
+    "listGoonBookPosts",
+    () =>
+      [...getMemoryStore().goonBookPosts.values()]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, limit),
+    async (db) => {
+      const snapshot = await db
+        .collection("goonBookPosts")
+        .orderBy("createdAt", "desc")
+        .limit(limit)
+        .get();
+
+      return snapshot.docs.map((doc) => doc.data() as GoonBookPostRecord);
+    },
+  );
+}
+
+export async function upsertGoonBookPost(record: GoonBookPostRecord) {
+  return withRepositoryBackend(
+    "upsertGoonBookPost",
+    () => {
+      getMemoryStore().goonBookPosts.set(record.id, record);
+      return record;
+    },
+    async (db) => {
+      await db.collection("goonBookPosts").doc(record.id).set(record, { merge: true });
       return record;
     },
   );

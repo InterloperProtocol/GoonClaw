@@ -1,0 +1,161 @@
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
+import path from "path";
+
+import {
+  AutonomousControlState,
+  AutonomousFeedEvent,
+  AutonomousRevenueBuckets,
+  AutonomousRuntimePhase,
+  AutonomousSelfModificationStatus,
+  AutonomousTradePosition,
+  AutonomousReplicationStatus,
+} from "@/lib/types";
+import { nowIso } from "@/lib/utils";
+
+type AutonomousAgentSnapshot = {
+  heartbeatAt: string;
+  runtimePhase: AutonomousRuntimePhase;
+  wakeReason: string;
+  latestPolicyDecision: string;
+  control: AutonomousControlState;
+  reserveSol: number;
+  usdcBalance: number;
+  revenueBuckets: AutonomousRevenueBuckets;
+  positions: AutonomousTradePosition[];
+  replication: AutonomousReplicationStatus;
+  selfModification: AutonomousSelfModificationStatus;
+};
+
+type AutonomousStoreShape = {
+  feed: AutonomousFeedEvent[];
+  snapshot: AutonomousAgentSnapshot;
+};
+
+declare global {
+  var __goonclawAutonomousStore: AutonomousStoreShape | undefined;
+}
+
+const DATA_DIR = path.join(process.cwd(), ".data");
+const STORE_PATH = path.join(DATA_DIR, "goonclaw-autonomous-store.json");
+
+function ensureDataDir() {
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function createInitialSnapshot(): AutonomousAgentSnapshot {
+  const timestamp = nowIso();
+  return {
+    heartbeatAt: timestamp,
+    runtimePhase: "booting",
+    wakeReason: "initial boot",
+    latestPolicyDecision:
+      "Bootstrapping GoonClaw autonomous runtime under Vertex-only policy.",
+    control: {
+      paused: false,
+      pauseReason: null,
+      lastAction: null,
+      lastActionAt: null,
+    },
+    reserveSol: 0.06942,
+    usdcBalance: 0,
+    revenueBuckets: {
+      ownerUsdc: 0,
+      burnUsdc: 0,
+      reserveUsdc: 0,
+      tradingUsdc: 0,
+      sessionTradeUsdc: 0,
+      totalProcessedUsdc: 0,
+    },
+    positions: [],
+    replication: {
+      enabled: true,
+      childCount: 0,
+      lastEventAt: null,
+      lastOutcome: "Replication enabled under owner-audited policy.",
+    },
+    selfModification: {
+      enabled: true,
+      lastEventAt: null,
+      auditProtected: true,
+      pendingProposal:
+        "Optimize treasury settlement cadence without weakening reserve-floor protection.",
+      lastOutcome: "Awaiting owner review for the next self-mod proposal.",
+    },
+  };
+}
+
+function readStoreFromDisk(): AutonomousStoreShape {
+  ensureDataDir();
+
+  if (!existsSync(STORE_PATH)) {
+    return {
+      feed: [],
+      snapshot: createInitialSnapshot(),
+    };
+  }
+
+  try {
+    return JSON.parse(readFileSync(STORE_PATH, "utf8")) as AutonomousStoreShape;
+  } catch {
+    return {
+      feed: [],
+      snapshot: createInitialSnapshot(),
+    };
+  }
+}
+
+function persistStore(store: AutonomousStoreShape) {
+  ensureDataDir();
+  writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+}
+
+function getStore() {
+  if (!global.__goonclawAutonomousStore) {
+    global.__goonclawAutonomousStore = readStoreFromDisk();
+  }
+
+  return global.__goonclawAutonomousStore;
+}
+
+export function getAutonomousSnapshot() {
+  return getStore().snapshot;
+}
+
+export function setAutonomousSnapshot(snapshot: AutonomousAgentSnapshot) {
+  const store = getStore();
+  store.snapshot = snapshot;
+  persistStore(store);
+}
+
+export function listAutonomousFeedEvents(limit = 80) {
+  return getStore().feed.slice(-limit).reverse();
+}
+
+export function appendAutonomousFeedEvent(event: AutonomousFeedEvent) {
+  const store = getStore();
+  store.feed.push(event);
+  if (store.feed.length > 500) {
+    store.feed = store.feed.slice(-500);
+  }
+  persistStore(store);
+}
+
+export function resetAutonomousStoreForTests() {
+  const nextStore = {
+    feed: [],
+    snapshot: createInitialSnapshot(),
+  };
+
+  global.__goonclawAutonomousStore = nextStore;
+  if (existsSync(STORE_PATH)) {
+    unlinkSync(STORE_PATH);
+  }
+}
