@@ -128,7 +128,10 @@ function isPayloadUnavailableError(error: unknown) {
   return (
     message.includes("cannot connect to SQLite") ||
     message.includes("Unable to open connection to local database") ||
-    message.includes("ConnectionFailed")
+    message.includes("ConnectionFailed") ||
+    message.includes("Failed query:") ||
+    message.includes("no such table") ||
+    message.includes("does not exist")
   );
 }
 
