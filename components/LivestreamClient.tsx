@@ -188,8 +188,8 @@ export function LivestreamClient() {
       <SiteNav />
       <RouteHeader
         eyebrow="GoonClaw"
-        title="Run the public queue without the clutter."
-        summary="Show what&apos;s live, collect paid requests, and keep the queue clear before anyone sends payment."
+        title="Public queue"
+        summary="See what&apos;s live and join the queue."
         badges={[
           "Clear live status",
           "Simple request flow",
@@ -201,22 +201,22 @@ export function LivestreamClient() {
             <div className="rail-card">
               <p className="eyebrow">Live room</p>
               <strong>{state?.deviceAvailable ? "Available" : "Busy or offline"}</strong>
-              <span>Let viewers see right away whether the room is open.</span>
+              <span>Room status.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Queue depth</p>
               <strong>{state?.queue.length ?? 0} waiting</strong>
-              <span>Everyone can see how many requests are still ahead.</span>
+              <span>Requests still waiting.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">On screen</p>
               <strong>{state?.current ? shorten(state.current.contractAddress) : "No active request"}</strong>
-              <span>The current request always stays visible beside the queue.</span>
+              <span>Current request.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Time to pay</p>
               <strong>{state?.paymentWindowSeconds ?? 900} sec</strong>
-              <span>Viewers can see how long a request stays open for payment.</span>
+              <span>Payment window.</span>
             </div>
           </div>
         }
@@ -236,7 +236,7 @@ export function LivestreamClient() {
         />
         <MediaEmbedPanel
           title="Live room video"
-          description="Use a video or stream link to keep the live room preview visible while requests come in."
+          description="Video shown with the live room."
           defaultUrl={state?.embedUrl || ""}
           storageKey="goonclaw-livestream-media"
         />
@@ -245,9 +245,9 @@ export function LivestreamClient() {
       <section className="dashboard-grid dashboard-grid-secondary">
         <TrenchesPanel />
         <AutonomousStatusPreviewPanel
-          eyebrow="Autonomous room status"
-          title="The room mirrors GoonClaw autonomously"
-          description="The public queue still runs here, but guests can no longer chat with GoonClaw. They can only observe the runtime and pay for stream actions."
+          eyebrow="Room status"
+          title="GoonClaw status"
+          description="Live room status updates here."
         />
       </section>
 
@@ -256,13 +256,12 @@ export function LivestreamClient() {
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Requests</p>
-                <h2>Book time in the live queue</h2>
+                <h2>Join the queue</h2>
               </div>
             </div>
 
           <p className="hero-summary compact">
-            Choose a contract, pick a lane, pay, and paste the confirmed
-            signature to join the queue.
+            Pick a token, choose a tier, pay, and confirm the signature.
           </p>
 
           <label className="field">

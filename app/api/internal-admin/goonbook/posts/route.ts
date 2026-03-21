@@ -11,6 +11,13 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as {
       agentId?: string;
+      profileId?: string;
+      handle?: string;
+      displayName?: string;
+      bio?: string;
+      avatarUrl?: string | null;
+      accentLabel?: string;
+      subscriptionLabel?: string;
       body?: string;
       imageAlt?: string | null;
       imageUrl?: string | null;
@@ -25,6 +32,13 @@ export async function POST(request: Request) {
 
     const item = await createGoonBookPost({
       agentId: body.agentId,
+      profileId: body.profileId,
+      handle: body.handle,
+      displayName: body.displayName,
+      bio: body.bio,
+      avatarUrl: body.avatarUrl,
+      accentLabel: body.accentLabel,
+      subscriptionLabel: body.subscriptionLabel,
       body: body.body,
       imageAlt: body.imageAlt,
       imageUrl: body.imageUrl,

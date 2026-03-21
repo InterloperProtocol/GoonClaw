@@ -124,6 +124,11 @@ env:
     availability:
       - RUNTIME
 
+  - variable: INTERNAL_ADMIN_LOGIN
+    value: "803c17fbb10f90f9a00dc80f799d4246dd3f3ae1b046d7bb09caf917962a8408"
+    availability:
+      - RUNTIME
+
   - variable: PAYLOAD_SECRET
     secret: PAYLOAD_SECRET
 
@@ -141,3 +146,6 @@ env:
 
   - variable: GOONCLAW_TELEGRAM_BOT_TOKEN
     secret: goonclaw-telegram-bot-token
+
+  - variable: INTERNAL_ADMIN_PASSWORD
+    secret: goonclaw-internal-admin-password

@@ -152,17 +152,17 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
             {
               question: "What is GoonClaw for?",
               answer:
-                "GoonClaw is the autonomous entity page for the owner and agent partnership. Public users can observe it, but only the hidden owner controls can steer it.",
+                "GoonClaw is the live room page. You can watch it here.",
             },
             {
-              question: "How does the published token focus work?",
+              question: "Which token is shown here?",
               answer:
-                "The current token mint reflects the active GoonClaw room and autonomous runtime posture. User-owned public pages live in MyGoonClaw instead of here.",
+                "This page shows the current room token.",
             },
             {
-              question: "Can users operate this page?",
+              question: "Can I control this page?",
               answer:
-                "No. GoonClaw is read-only for viewers. Devices, personal sessions, media changes, and public stream publishing belong in MyGoonClaw.",
+                "No. This page is view-only.",
             },
             {
               question: "What was the latest activity?",
@@ -173,20 +173,20 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
             {
               question: "What is MyGoonClaw for?",
               answer:
-                "MyGoonClaw runs your streamer setup and keeps the guest-facing panel in sync with your saved devices, media, and public page settings.",
+                "MyGoonClaw is your workspace for devices, sessions, media, and your public page.",
             },
             {
               question: "What is my streamer status?",
               answer: publicStream?.isPublic
                 ? `Your public streamer page is live at @${publicStream.slug}.`
-                : "Your streamer page is still a private draft until you publish it.",
+                : "Your page is private until you publish it.",
             },
             {
               question: "What mode am I in?",
               answer:
                 mode === "live"
-                  ? "Live tracking is active, so your setup is ready to follow the live market move."
-                  : "Guided pattern mode is active, so your setup will run a generated pattern instead of pure live tracking.",
+                  ? "Live mode is on."
+                  : "Pattern mode is on.",
             },
             {
               question: "What was the latest activity?",
@@ -612,7 +612,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Public room</p>
-                <h2>GoonClaw stream and device relay</h2>
+                <h2>Live room</h2>
               </div>
             </div>
 
@@ -628,10 +628,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
               <div className="summary-card">
                 <span>Fixed relay device</span>
                 <strong>Autoblow public room</strong>
-                <p>
-                  GoonClaw now runs a single configured Autoblow relay. Device
-                  setup lives outside this public page.
-                </p>
+                <p>One fixed device runs this room.</p>
               </div>
             </div>
 
@@ -652,7 +649,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
               </div>
               <div className="detail">
                 <dt>Relay device</dt>
-                <dd>Autoblow token 71nt0tdpv35q</dd>
+                <dd>Autoblow relay</dd>
               </div>
               <div className="detail">
                 <dt>Room status</dt>
@@ -854,14 +851,14 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
         {isTokenControlPage ? (
           <AutonomousStatusPreviewPanel
             eyebrow="Agent status"
-            title="GoonClaw is autonomous"
-            description="This slot mirrors the public status wall. GoonClaw stays read-only here, and only the hidden owner dashboard can intervene."
+            title="GoonClaw status"
+            description="Live status only."
           />
         ) : (
           <PublicChatPanel
             eyebrow="MyGoonClaw chat"
-            title="Use the lightweight chatbot"
-            description="MyGoonClaw keeps the helper chatbot available for quick copy, planning, and general questions while your chart stays locked into row 1."
+            title="Chat"
+            description="Ask quick questions while you use the page."
           />
         )}
       </section>
@@ -883,7 +880,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
             <div>
               <p className="eyebrow">Go live</p>
               <h2>
-                {isTokenControlPage ? "GoonClaw entity status" : "Run your MyGoonClaw session"}
+                {isTokenControlPage ? "Room status" : "Your session"}
               </h2>
             </div>
           </div>
@@ -912,8 +909,8 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
                 }}
                 placeholder={
                   isTokenControlPage
-                    ? "Published by the autonomous entity"
-                    : "Controlled from GoonClaw"
+                    ? "Live room token"
+                    : "Same token as GoonClaw"
                 }
                 readOnly={isTokenControlPage}
               />
@@ -922,8 +919,8 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
 
           <p className="inline-note">
             {isTokenControlPage
-              ? "This page now mirrors the live GoonClaw room. Token focus, stream source, and device execution are published here as read-only status."
-              : "Token changes happen in GoonClaw. MyGoonClaw mirrors that token across your guest-facing setup."}
+              ? "This page shows the live room."
+              : "MyGoonClaw follows the same token as GoonClaw."}
           </p>
 
           {!isTokenControlPage ? (
@@ -995,8 +992,8 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
           ) : (
             <p className="empty-state">
               {isTokenControlPage
-                ? "No active public session is broadcasting right now."
-                : "No active session yet. Save a setup and start whenever you&apos;re ready."}
+                ? "No live session right now."
+                : "No session yet. Save a setup and start when ready."}
             </p>
           )}
 
@@ -1024,7 +1021,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
           {isTokenControlPage ? (
             <>
               <p className="panel-lead go-live-subsection">
-                GoonClaw broadcasts the active token and room status here. Manual device connect and session controls have been removed from this page.
+                This page shows the live token and room status.
               </p>
 
               {livestreamState ? (
@@ -1054,12 +1051,12 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
                   <dd>{focusContractAddress}</dd>
                 </div>
                 <div className="detail">
-                  <dt>Access model</dt>
-                  <dd>Public viewers can observe this page, but only the internal owner dashboard can change GoonClaw state.</dd>
+                  <dt>Page mode</dt>
+                  <dd>View only.</dd>
                 </div>
                 <div className="detail">
-                  <dt>User boundary</dt>
-                  <dd>All user-controlled devices, sessions, and public stream publishing belong in MyGoonClaw instead of this entity page.</dd>
+                  <dt>User controls</dt>
+                  <dd>Devices and sessions are managed in MyGoonClaw.</dd>
                 </div>
               </dl>
             </>
@@ -1125,8 +1122,8 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
         ) : (
           <AutonomousStatusPreviewPanel
             eyebrow="Public visibility"
-            title="GoonClaw is read-only here"
-            description="The public page now mirrors the autonomous runtime, Kick stream, trench pulse, and fixed Autoblow relay without exposing device registration or room controls."
+            title="Read-only room"
+            description="Watch the live room here."
           />
         )}
         <HomeEligibilityCta />
@@ -1142,7 +1139,7 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
           </div>
         </div>
         <p className="panel-lead">
-          The old hero details live down here now so the dashboard can stay focused on the live panels first.
+          Quick answers for this page.
         </p>
         <div className="faq-list">
           {pageFaqItems.map((item) => (

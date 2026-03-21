@@ -68,24 +68,24 @@ export function GoonStreamsClient() {
       <SiteNav />
       <RouteHeader
         eyebrow="GoonConnect"
-        title="What is actually live right now."
-        summary="Browse the public guest-session panels that are currently running a live device session. Open any stream to watch the chart, media, and session state in read-only mode."
+        title="Who&apos;s live right now."
+        summary="Browse live public rooms and open any one to watch."
         badges={[
           "Live only",
-          "Public MyGoonClaw panels",
-          "Auto-refreshing board",
+          "Public rooms",
+          "Auto refresh",
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
               <p className="eyebrow">Active now</p>
               <strong>{items.length}</strong>
-              <span>Only streams with an active or starting session show up here.</span>
+              <span>Rooms live right now.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Refresh</p>
               <strong>Every 15 seconds</strong>
-              <span>The board keeps checking for guests who just went live.</span>
+              <span>Updates happen automatically.</span>
             </div>
           </div>
         }
@@ -95,7 +95,7 @@ export function GoonStreamsClient() {
 
       {loading ? (
         <section className="panel">
-          <p className="empty-state">Checking which GoonConnect streams are live right now.</p>
+          <p className="empty-state">Checking live rooms.</p>
         </section>
       ) : items.length ? (
         <section className="surface-grid">
@@ -139,9 +139,7 @@ export function GoonStreamsClient() {
         </section>
       ) : (
         <section className="panel">
-          <p className="empty-state">
-            No public guest-session streams are active right now.
-          </p>
+          <p className="empty-state">No live rooms right now.</p>
         </section>
       )}
     </div>

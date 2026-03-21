@@ -10,6 +10,7 @@ import {
 import {
   DeviceProfile,
   DeviceType,
+  GoonBookProfile,
   EntitlementRecord,
   GoonBookPostRecord,
   LivestreamRequestRecord,
@@ -26,6 +27,7 @@ type MemoryShape = {
   entitlements: Map<string, EntitlementRecord>;
   orders: Map<string, OrderRecord>;
   publicStreamProfiles: Map<string, PublicStreamProfile>;
+  goonBookProfiles: Map<string, GoonBookProfile>;
   goonBookPosts: Map<string, GoonBookPostRecord>;
   sessions: Map<string, SessionRecord>;
   livestreamRequests: Map<string, LivestreamRequestRecord>;
@@ -40,6 +42,7 @@ function getMemoryStore(): MemoryShape {
     global.__goonclawMemory = {
       devices: new Map(),
       entitlements: new Map(),
+      goonBookProfiles: new Map(),
       goonBookPosts: new Map(),
       orders: new Map(),
       publicStreamProfiles: new Map(),
@@ -378,6 +381,47 @@ export async function getGoonBookPost(id: string) {
     async (db) => {
       const doc = await db.collection("goonBookPosts").doc(id).get();
       return doc.exists ? (doc.data() as GoonBookPostRecord) : null;
+    },
+  );
+}
+
+export async function getGoonBookProfile(id: string) {
+  return withRepositoryBackend(
+    "getGoonBookProfile",
+    () => getMemoryStore().goonBookProfiles.get(id) ?? null,
+    async (db) => {
+      const doc = await db.collection("goonBookProfiles").doc(id).get();
+      return doc.exists ? (doc.data() as GoonBookProfile) : null;
+    },
+  );
+}
+
+export async function listGoonBookProfiles() {
+  return withRepositoryBackend(
+    "listGoonBookProfiles",
+    () =>
+      [...getMemoryStore().goonBookProfiles.values()].sort((a, b) =>
+        a.displayName.localeCompare(b.displayName),
+      ),
+    async (db) => {
+      const snapshot = await db.collection("goonBookProfiles").get();
+      return snapshot.docs
+        .map((doc) => doc.data() as GoonBookProfile)
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    },
+  );
+}
+
+export async function upsertGoonBookProfile(record: GoonBookProfile) {
+  return withRepositoryBackend(
+    "upsertGoonBookProfile",
+    () => {
+      getMemoryStore().goonBookProfiles.set(record.id, record);
+      return record;
+    },
+    async (db) => {
+      await db.collection("goonBookProfiles").doc(record.id).set(record, { merge: true });
+      return record;
     },
   );
 }

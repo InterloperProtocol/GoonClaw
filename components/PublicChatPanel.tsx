@@ -30,7 +30,7 @@ function formatResetTime(value: string | null) {
 
 export function PublicChatPanel({
   eyebrow = "Quick chat",
-  title = "Ask the lightweight chatbot",
+  title = "Chat",
   description = "",
 }: {
   eyebrow?: string;
@@ -171,15 +171,15 @@ export function PublicChatPanel({
         </div>
         <div className="source-pill">
           <span className="status-dot" />
-          Vertex AI Gemini
+          Ready
         </div>
       </div>
 
       <p className="hero-summary compact">{description}</p>
 
       <div className="route-badges">
-        <StatusBadge tone="accent">Vertex AI Gemini</StatusBadge>
-        <StatusBadge tone="accent">20 messages / 24h</StatusBadge>
+        <StatusBadge tone="accent">Simple answers</StatusBadge>
+        <StatusBadge tone="accent">20 messages / day</StatusBadge>
       </div>
 
       <div className="chat-meta">
@@ -210,8 +210,8 @@ export function PublicChatPanel({
           ))
         ) : (
           <div className="embed-placeholder compact">
-            <strong>Start with anything simple.</strong>
-            <p>Try ideas, explainers, copy help, or quick research questions.</p>
+            <strong>Ask a quick question.</strong>
+            <p>Try ideas, explainers, or short copy help.</p>
           </div>
         )}
 
@@ -237,7 +237,7 @@ export function PublicChatPanel({
                 void sendMessage();
               }
             }}
-            placeholder="Ask a general question"
+            placeholder="Ask a question"
             rows={3}
           />
         </label>

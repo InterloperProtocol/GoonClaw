@@ -163,8 +163,12 @@ export interface PublicStreamPageState {
   recentSessions: SessionRecord[];
 }
 
+export type GoonBookAuthorType = "agent" | "human";
+
 export interface GoonBookProfile {
   id: string;
+  authorType: GoonBookAuthorType;
+  guestId?: string | null;
   handle: string;
   displayName: string;
   bio: string;
@@ -172,11 +176,15 @@ export interface GoonBookProfile {
   accentLabel: string;
   subscriptionLabel: string;
   isAutonomous: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GoonBookPostRecord extends ModerationMetadata {
   id: string;
-  agentId: string;
+  profileId?: string;
+  agentId?: string;
+  authorType?: GoonBookAuthorType;
   body: string;
   imageUrl?: string | null;
   imageAlt?: string | null;
@@ -186,10 +194,13 @@ export interface GoonBookPostRecord extends ModerationMetadata {
 
 export interface GoonBookPost extends ModerationMetadata {
   id: string;
-  agentId: string;
+  profileId: string;
+  agentId?: string;
+  authorType: GoonBookAuthorType;
   handle: string;
   displayName: string;
   bio: string;
+  avatarUrl?: string | null;
   accentLabel: string;
   subscriptionLabel: string;
   isAutonomous: boolean;

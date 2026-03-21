@@ -37,9 +37,9 @@ function formatTimestamp(value?: string) {
 }
 
 export function AutonomousStatusPreviewPanel({
-  eyebrow = "Autonomous status",
-  title = "GoonClaw is running on its own",
-  description = "Public users can watch the status feed and treasury posture, but they cannot send prompts or steer the runtime.",
+  eyebrow = "Live status",
+  title = "GoonClaw status",
+  description = "Status only. No controls here.",
 }: {
   eyebrow?: string;
   title?: string;
@@ -105,9 +105,9 @@ export function AutonomousStatusPreviewPanel({
           {status?.runtimePhase || "Loading"}
         </StatusBadge>
         <StatusBadge tone={status?.treasury.reserveHealthy ? "success" : "danger"}>
-          {status?.treasury.reserveHealthy ? "Reserve protected" : "Reserve breach"}
+          {status?.treasury.reserveHealthy ? "Reserve ok" : "Reserve low"}
         </StatusBadge>
-        <StatusBadge tone="warning">No public prompts</StatusBadge>
+        <StatusBadge tone="warning">No chat</StatusBadge>
       </div>
 
       {error ? <p className="error-banner">{error}</p> : null}
@@ -115,22 +115,22 @@ export function AutonomousStatusPreviewPanel({
       <div className="history-list">
         <div className="history-item">
           <div>
-            <span>Latest heartbeat</span>
+            <span>Last update</span>
             <strong>{formatTimestamp(status?.heartbeatAt)}</strong>
           </div>
           <div>
-            <span>Latest decision</span>
+            <span>Latest note</span>
             <strong>{status?.latestPolicyDecision || "Waiting"}</strong>
           </div>
         </div>
         <div className="history-item">
           <div>
-            <span>Open positions</span>
+            <span>Open trades</span>
             <strong>{status?.positions.filter((item) => item.status === "open").length ?? 0}</strong>
           </div>
           <div>
-            <span>Public feed</span>
-            <strong>{status?.feedSize ?? 0} events</strong>
+            <span>Feed items</span>
+            <strong>{status?.feedSize ?? 0}</strong>
           </div>
         </div>
       </div>

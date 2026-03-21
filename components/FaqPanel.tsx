@@ -1,18 +1,18 @@
 const faqItems = [
   {
-    question: "Can public users control GoonClaw?",
+    question: "Can I control this page?",
     answer:
-      "No. Public users can watch the heartbeat, treasury posture, and public trace feed, but only the hidden owner dashboard can pause, settle, liquidate, or approve policy actions.",
+      "No. This page is view-only.",
   },
   {
-    question: "What chains and models does GoonClaw use?",
+    question: "What does it use?",
     answer:
-      "GoonClaw is constrained to Solana and USDC flows, and its inference backend is Vertex AI Gemini on Google Cloud. The autonomous runtime is intentionally Solana-only and Vertex-only.",
+      "Solana, USDC, and Google Cloud.",
   },
   {
-    question: "How do the revenue splits work?",
+    question: "How are funds split?",
     answer:
-      "Creator fees split 50 percent to the owner wallet, 40 percent to GoonClaw buyback and burn, and 10 percent to trading. GoonClaw-owned ChartSync revenue splits 50 percent to burn and 50 percent to the displayed-token session trade. Third-party public-stream commission routes 5 percent to burn and 5 percent to reserve.",
+      "Creator fees are split between payout, burn, reserve, and trading.",
   },
 ];
 
@@ -22,13 +22,10 @@ export function FaqPanel() {
       <div className="panel-header">
         <div>
           <p className="eyebrow">FAQ</p>
-          <h2>How the autonomous runtime works</h2>
+          <h2>Quick answers</h2>
         </div>
       </div>
-      <p className="panel-lead">
-        A few quick answers about autonomy, control boundaries, and treasury
-        policy so the public status wall stays clear without getting bloated.
-      </p>
+      <p className="panel-lead">Simple answers for this page.</p>
 
       <div className="faq-list">
         {faqItems.map((item) => (

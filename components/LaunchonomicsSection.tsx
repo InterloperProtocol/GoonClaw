@@ -134,24 +134,24 @@ export function LaunchonomicsSection({
       });
       const payload = (await response.json()) as ClaimResponse;
       if (!response.ok) {
-        throw new Error(payload.error || "Couldn't send the subscription pass");
+        throw new Error(payload.error || "Couldn't send access");
       }
 
       if (payload.reused) {
         if (payload.entitlement?.type === "burn") {
           setNotice("This wallet already has an active burn-based access record.");
         } else {
-          setNotice("This wallet already has a subscription pass on record.");
+          setNotice("This wallet already has access.");
         }
         return;
       }
 
-      setNotice("Subscription pass sent to the eligible wallet.");
+      setNotice("Access sent.");
     } catch (claimError) {
       setError(
         claimError instanceof Error
           ? claimError.message
-          : "Couldn't send the subscription pass",
+          : "Couldn't send access",
       );
     } finally {
       setClaiming(false);
@@ -175,13 +175,12 @@ export function LaunchonomicsSection({
           <div className="panel-header">
             <div>
               <p className="eyebrow">Wallet access</p>
-              <h2>Check access right here on the homepage</h2>
+              <h2>Check access on this page</h2>
             </div>
           </div>
           <p className="panel-lead">
-            Paste a Solana wallet to review its LaunchONomics result for{" "}
-            {accessTokenSymbol}. If it qualifies, you can send the subscription
-            pass without leaving the homepage.
+            Paste a Solana wallet to check access for {accessTokenSymbol}. If it
+            qualifies, you can send access from here.
           </p>
           <div className="route-badges">
             <StatusBadge tone="warning">Fast lookup</StatusBadge>
@@ -200,7 +199,7 @@ export function LaunchonomicsSection({
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Wallet lookup</p>
-                <h2>Check subscription access</h2>
+                <h2>Check access</h2>
               </div>
             </div>
 
@@ -300,7 +299,7 @@ export function LaunchonomicsSection({
             <div className="panel-header">
               <div>
                 <p className="eyebrow">Result</p>
-                <h2>Wallet result</h2>
+                <h2>Result</h2>
               </div>
             </div>
 
@@ -366,17 +365,17 @@ export function LaunchonomicsSection({
                     disabled={!canClaim || claiming}
                     onClick={() => void claimSubscriptionCnft()}
                   >
-                    {claiming ? "Sending..." : "Send subscription pass"}
+                    {claiming ? "Sending..." : "Send access"}
                   </button>
                 </div>
 
                 {!canClaim ? (
                   <p className="empty-state">
-                    This wallet does not qualify for a subscription pass right now.
+                    This wallet does not qualify right now.
                   </p>
                 ) : (
                   <p className="empty-state">
-                    This wallet is ready. Send the subscription pass whenever you&apos;re ready.
+                    This wallet is ready.
                   </p>
                 )}
                 <div className="route-badges">
@@ -390,8 +389,7 @@ export function LaunchonomicsSection({
               </>
             ) : (
               <p className="empty-state">
-                Paste a wallet to see its LaunchONomics tier, launch timing, and
-                access details.
+                Paste a wallet to see the result.
               </p>
             )}
           </section>

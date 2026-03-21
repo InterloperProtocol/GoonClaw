@@ -13,6 +13,10 @@
   --success: #89c47b;
   --warning: #f2a14a;
   --danger: #ff7b6d;
+  --seafoam: #9bc8c0;
+  --seafoam-strong: #7fb5ab;
+  --seafoam-soft: #dff5ef;
+  --seafoam-line: rgba(155, 200, 192, 0.34);
   --focus: #ffe089;
   --shadow:
     0 0 0 1px rgba(242, 161, 74, 0.06),
@@ -336,6 +340,15 @@ textarea {
   background: rgba(255, 123, 109, 0.1);
   border-color: rgba(255, 123, 109, 0.42);
   color: #ffd4cd;
+}
+
+.button-seafoam {
+  background: rgba(155, 200, 192, 0.14);
+  border-color: var(--seafoam-line);
+  color: var(--seafoam-soft);
+  box-shadow:
+    inset 0 0 0 1px rgba(155, 200, 192, 0.18),
+    0 0 16px rgba(155, 200, 192, 0.08);
 }
 
 .button.small {
@@ -1200,6 +1213,286 @@ textarea {
   text-align: right;
 }
 
+.goonbook-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.9fr);
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 123, 109, 0.22);
+  border-radius: 0.4rem;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(155, 200, 192, 0.16), transparent 24%),
+    radial-gradient(circle at top left, rgba(255, 123, 109, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(242, 161, 74, 0.16), transparent 24%),
+    linear-gradient(180deg, #16100d 0%, #0e0a08 100%);
+  box-shadow: var(--shadow);
+}
+
+.goonbook-hero-copy {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.goonbook-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 4.5vw, 4.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  max-width: 11ch;
+}
+
+.goonbook-seafoam-text {
+  color: var(--seafoam);
+}
+
+.goonbook-accent-text {
+  color: var(--accent-soft);
+}
+
+.goonbook-tip-band {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 38rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.24rem;
+  border: 1px solid var(--seafoam-line);
+  background:
+    linear-gradient(90deg, rgba(155, 200, 192, 0.12), rgba(155, 200, 192, 0.04)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.goonbook-tip-band strong {
+  color: var(--seafoam-soft);
+  font-size: 0.98rem;
+}
+
+.goonbook-tip-band span {
+  color: var(--text-subtle);
+  line-height: 1.6;
+}
+
+.goonbook-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.goonbook-stat-card,
+.goonbook-side-card,
+.goonbook-post-card,
+.goonbook-compose-card {
+  border-radius: 0.24rem;
+  border: 1px solid rgba(242, 161, 74, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.goonbook-stat-card {
+  padding: 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(155, 200, 192, 0.08), transparent 70%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.goonbook-stat-card span,
+.goonbook-post-foot span,
+.goonbook-rule-list p,
+.goonbook-author span,
+.goonbook-compose-footer span {
+  color: var(--text-dim);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.goonbook-stat-card strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.2rem;
+  color: var(--seafoam-soft);
+}
+
+.goonbook-compose-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  align-content: start;
+  background:
+    radial-gradient(circle at top right, rgba(155, 200, 192, 0.12), transparent 30%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.goonbook-compose-header,
+.goonbook-post-head,
+.goonbook-post-foot,
+.goonbook-profile-item {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.goonbook-compose-header h2,
+.goonbook-side-card h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.15rem;
+}
+
+.goonbook-compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.goonbook-compose-note {
+  margin: -0.1rem 0 0;
+  color: var(--text-subtle);
+  line-height: 1.6;
+}
+
+.goonbook-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.72fr);
+  gap: 1rem;
+}
+
+.goonbook-feed,
+.goonbook-sidebar,
+.goonbook-profile-list {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.goonbook-post-card,
+.goonbook-side-card {
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.goonbook-side-card {
+  background:
+    linear-gradient(180deg, rgba(155, 200, 192, 0.06), transparent 75%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.goonbook-author {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.goonbook-author strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.goonbook-author span {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.goonbook-avatar,
+.goonbook-avatar-image {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.goonbook-avatar {
+  display: grid;
+  place-items: center;
+  background: rgba(155, 200, 192, 0.12);
+  border: 1px solid var(--seafoam-line);
+  color: var(--seafoam-soft);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.goonbook-avatar-image {
+  object-fit: cover;
+  border: 1px solid var(--seafoam-line);
+}
+
+.goonbook-post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.goonbook-post-body,
+.goonbook-side-copy,
+.goonbook-rule-list p {
+  margin: 0;
+  color: var(--text-subtle);
+  line-height: 1.65;
+}
+
+.goonbook-post-body {
+  font-size: 1rem;
+}
+
+.goonbook-post-image {
+  width: 100%;
+  border-radius: 0.24rem;
+  border: 1px solid var(--seafoam-line);
+  object-fit: cover;
+  max-height: 34rem;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.goonbook-post-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.goonbook-post-foot {
+  align-items: center;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(242, 161, 74, 0.12);
+}
+
+.goonbook-rule-list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.75rem;
+}
+
+.goonbook-profile-tip {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.24rem;
+  border: 1px solid var(--seafoam-line);
+  background: rgba(155, 200, 192, 0.08);
+}
+
+.goonbook-profile-tip span {
+  color: var(--seafoam);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.goonbook-profile-tip strong {
+  color: var(--seafoam-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.goonbook-profile-list {
+  margin-top: 0.75rem;
+}
+
 @media (max-width: 1080px) {
   .route-header,
   .hero,
@@ -1208,13 +1501,16 @@ textarea {
   .dashboard-grid-primary-row,
   .dashboard-grid-secondary,
   .dashboard-grid-fullwidth,
+  .goonbook-hero,
+  .goonbook-layout,
   .surface-grid,
   .rail-grid {
     grid-template-columns: 1fr;
   }
 
   .session-card,
-  .stats-grid {
+  .stats-grid,
+  .goonbook-stat-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1246,6 +1542,7 @@ textarea {
   .field-grid,
   .session-card,
   .stats-grid,
+  .goonbook-stat-row,
   .chat-meta,
   .token-pulse-main,
   .token-pulse-stats {

@@ -32,9 +32,8 @@ export function LaunchonomicsClient({
         title="Check a wallet and see what it unlocks."
         summary={
           <>
-            Paste a Solana wallet to review its LaunchONomics result for{" "}
-            {accessTokenSymbol}. If it qualifies, you can send the subscription
-            pass from the same page.
+            Paste a Solana wallet to check access for {accessTokenSymbol}. If it
+            qualifies, you can send access from the same page.
           </>
         }
         badges={[
@@ -47,12 +46,12 @@ export function LaunchonomicsClient({
             <div className="rail-card">
               <p className="eyebrow">Open access ends</p>
               <strong>{formatDate(freeAccessUntil)}</strong>
-              <span>Guest access stays open until this date.</span>
+              <span>Open access stays on until then.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Launch window starts</p>
               <strong>{launchAt ? formatDate(launchAt) : "Awaiting config"}</strong>
-              <span>This timing powers the access windows below.</span>
+              <span>This date sets the access window.</span>
             </div>
           </div>
         }

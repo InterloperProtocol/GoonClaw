@@ -192,23 +192,43 @@ export async function ensureSeededInternalAdmin() {
 
   try {
     const payload = await getPayloadClient();
+    const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
+    const email = deriveAdminEmail(username);
     const existing = await payload.find({
       collection: "admins",
       depth: 0,
-      limit: 1,
+      limit: 10,
       overrideAccess: true,
     });
 
-    if (existing.docs.length > 0) {
-      return normalizeAdminUser(existing.docs[0]);
+    const matchingAdmin =
+      existing.docs.find((doc) => {
+        const record = asRecord(doc);
+        return record?.username === username;
+      }) ?? existing.docs[0];
+
+    if (matchingAdmin) {
+      const updated = await payload.update({
+        id: String(asRecord(matchingAdmin)?.id),
+        collection: "admins",
+        data: {
+          displayName: "Internal Admin",
+          email,
+          password,
+          username,
+        },
+        depth: 0,
+        overrideAccess: true,
+      });
+
+      return normalizeAdminUser(updated);
     }
 
-    const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
     const created = await payload.create({
       collection: "admins",
       data: {
         displayName: "Internal Admin",
-        email: deriveAdminEmail(username),
+        email,
         password,
         username,
       },
@@ -495,10 +515,13 @@ export async function unhidePublicStreamProfile(args: { guestId: string }) {
   return updated;
 }
 
-function getProfileHandle(agentId: string) {
-  return agentId === "goonclaw"
+function getProfileHandle(profileId?: string, agentId?: string) {
+  const source = profileId || agentId || "unknown";
+  const normalized = source.startsWith("human:") ? source.slice(6) : source;
+
+  return normalized === "goonclaw"
     ? { displayName: "GoonClaw", handle: "goonclaw" }
-    : { displayName: agentId, handle: agentId };
+    : { displayName: normalized, handle: normalized };
 }
 
 function buildRuntimeSummary(): AutonomousRuntimeSummary {
@@ -626,7 +649,7 @@ export async function getInternalAdminDashboardData() {
     .sort((left, right) => left.slug.localeCompare(right.slug));
 
   const dashboardGoonBookPosts: DashboardGoonBookPost[] = goonBookPosts.map((post) => {
-    const profile = getProfileHandle(post.agentId);
+    const profile = getProfileHandle(post.profileId, post.agentId);
     return {
       ...post,
       displayName: profile.displayName,

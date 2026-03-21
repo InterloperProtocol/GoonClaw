@@ -67,6 +67,22 @@ function toneForEvent(kind: AutonomousFeedEvent["kind"]): BadgeTone {
   }
 }
 
+function labelForEvent(kind: AutonomousFeedEvent["kind"]) {
+  switch (kind) {
+    case "heartbeat":
+      return "update";
+    case "policy":
+      return "note";
+    case "control":
+      return "status";
+    case "replication":
+    case "self_mod":
+      return "system";
+    default:
+      return kind;
+  }
+}
+
 export function AutonomousAgentPanel() {
   const [status, setStatus] = useState<AutonomousAgentStatus | null>(null);
   const [feed, setFeed] = useState<AutonomousFeedEvent[]>([]);
@@ -91,11 +107,11 @@ export function AutonomousAgentPanel() {
           | { error?: string };
 
         if (!statusResponse.ok) {
-          throw new Error(statusPayload.error || "Couldn't load autonomous status");
+          throw new Error(statusPayload.error || "Couldn't load status");
         }
 
         if (!feedResponse.ok || !Array.isArray(feedPayload)) {
-          throw new Error("Couldn't load autonomous feed");
+          throw new Error("Couldn't load updates");
         }
 
         if (!cancelled) {
@@ -109,7 +125,7 @@ export function AutonomousAgentPanel() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Couldn't load autonomous status",
+              : "Couldn't load status",
           );
         }
       }
@@ -141,20 +157,18 @@ export function AutonomousAgentPanel() {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Autonomous status</p>
-          <h2>Heartbeat, treasury, and public decision trace</h2>
+          <p className="eyebrow">Live status</p>
+          <h2>Recent status and activity</h2>
         </div>
         <div className="source-pill">
           <span className="status-dot" />
-          {status?.modelRuntime.configured ? "Vertex only" : "Setup needed"}
+          {status?.modelRuntime.configured ? "Live" : "Checking"}
         </div>
       </div>
 
       <p className="panel-lead">
-        GoonClaw is autonomous and public users cannot steer it. This wall exposes
-        the runtime heartbeat, reserve health, revenue routing, and the maximum
-        public trace the system can safely publish, including the treasury guardrails
-        that block arbitrary private-address transfers.
+        This page shows live status, reserve health, open trades, and recent
+        public updates. It is view-only.
       </p>
 
       <div className="route-badges">
@@ -162,14 +176,10 @@ export function AutonomousAgentPanel() {
           {status ? status.runtimePhase : "Loading"}
         </StatusBadge>
         <StatusBadge tone={status?.treasury.reserveHealthy ? "success" : "danger"}>
-          {status?.treasury.reserveHealthy ? "Reserve healthy" : "Reserve breach"}
+          {status?.treasury.reserveHealthy ? "Reserve ok" : "Reserve low"}
         </StatusBadge>
-        <StatusBadge tone="accent">Vertex AI Gemini only</StatusBadge>
-        <StatusBadge tone="warning">Owner-only controls</StatusBadge>
         <StatusBadge tone={status?.tooling.telegramBroadcastEnabled ? "success" : "neutral"}>
-          {status?.tooling.telegramBroadcastEnabled
-            ? "Telegram relay armed"
-            : "Telegram relay idle"}
+          {status?.tooling.telegramBroadcastEnabled ? "Telegram on" : "Telegram off"}
         </StatusBadge>
         <StatusBadge tone="neutral" mono>
           Last update {lastUpdatedLabel}
@@ -192,7 +202,7 @@ export function AutonomousAgentPanel() {
           <strong>{status ? formatNumber(status.revenueBuckets.totalProcessedUsdc, 2) : "0.00"} USDC</strong>
         </div>
         <div className="metric-card">
-          <span>Open positions</span>
+          <span>Open trades</span>
           <strong>{openPositions.length}</strong>
         </div>
       </div>
@@ -200,49 +210,25 @@ export function AutonomousAgentPanel() {
       <div className="history-list">
         <div className="history-item">
           <div>
-            <span>Heartbeat</span>
+            <span>Last update</span>
             <strong>{formatTimestamp(status?.heartbeatAt)}</strong>
           </div>
           <div>
-            <span>Wake reason</span>
-            <strong>{status?.wakeReason || "Waiting"}</strong>
+            <span>Current state</span>
+            <strong>{status?.runtimePhase || "Waiting"}</strong>
           </div>
         </div>
         <div className="history-item">
           <div>
-            <span>Constitution hash</span>
-            <strong>
-              {status?.constitutionHash
-                ? `${status.constitutionHash.slice(0, 10)}...${status.constitutionHash.slice(-10)}`
-                : "Waiting"}
-            </strong>
-          </div>
-          <div>
-            <span>Trace mode</span>
-            <strong>{status?.publicTraceMode || "maximum-available"}</strong>
-          </div>
-        </div>
-        <div className="history-item">
-          <div>
-            <span>Tooling</span>
-            <strong>
-              {status?.tooling.solanaAgentKitConfigured ? "Solana Agent Kit ready" : "Solana Agent Kit waiting"}
-            </strong>
-          </div>
-          <div>
-            <span>MCP / skills</span>
-            <strong>
-              {status
-                ? `${status.tooling.solanaMcpConfigured ? "MCP ready" : "MCP pending"} / ${status.tooling.loadedSkillCount} skills / Dexter x402 ${status.tooling.dexterX402Installed ? status.tooling.dexterX402Version || "installed" : "missing"}`
-                : "Waiting"}
-            </strong>
-          </div>
-        </div>
-        <div className="history-item">
-          <div>
-            <span>Latest decision</span>
+            <span>Latest note</span>
             <strong>{status?.latestPolicyDecision || "Waiting"}</strong>
           </div>
+          <div>
+            <span>Feed mode</span>
+            <strong>{status?.publicTraceMode || "Waiting"}</strong>
+          </div>
+        </div>
+        <div className="history-item">
           <div>
             <span>Wallet</span>
             <strong>
@@ -251,18 +237,8 @@ export function AutonomousAgentPanel() {
                 : "Not configured"}
             </strong>
           </div>
-        </div>
-        <div className="history-item">
           <div>
-            <span>Blocked actions</span>
-            <strong>
-              {status?.tooling.blockedActionNames.length
-                ? status.tooling.blockedActionNames.join(" Â· ")
-                : "No blocked actions listed"}
-            </strong>
-          </div>
-          <div>
-            <span>Allowed payout wallet</span>
+            <span>Payout wallet</span>
             <strong>
               {status?.treasury.ownerWallet
                 ? `${status.treasury.ownerWallet.slice(0, 4)}...${status.treasury.ownerWallet.slice(-4)}`
@@ -270,61 +246,49 @@ export function AutonomousAgentPanel() {
             </strong>
           </div>
         </div>
+        <div className="history-item">
+          <div>
+            <span>Updates</span>
+            <strong>{status?.tooling.telegramBroadcastEnabled ? "Posting to Telegram" : "Feed paused"}</strong>
+          </div>
+          <div>
+            <span>Safety</span>
+            <strong>
+              {status?.treasury.transferGuardrails.arbitraryTransfersBlocked
+                ? "Protected"
+                : "Open"}
+            </strong>
+          </div>
+        </div>
       </div>
 
       <div className="detail-list compact">
         <div className="detail">
-          <dt>Revenue buckets</dt>
+          <dt>Funds split</dt>
           <dd>
             {status
-              ? `Owner ${formatNumber(status.revenueBuckets.ownerUsdc, 2)} USDC · Burn ${formatNumber(status.revenueBuckets.burnUsdc, 2)} USDC · Reserve ${formatNumber(status.revenueBuckets.reserveUsdc, 2)} USDC · Trading ${formatNumber(status.revenueBuckets.tradingUsdc, 2)} USDC · Session trade ${formatNumber(status.revenueBuckets.sessionTradeUsdc, 2)} USDC`
+              ? `Owner ${formatNumber(status.revenueBuckets.ownerUsdc, 2)} USDC | Burn ${formatNumber(status.revenueBuckets.burnUsdc, 2)} USDC | Reserve ${formatNumber(status.revenueBuckets.reserveUsdc, 2)} USDC | Trading ${formatNumber(status.revenueBuckets.tradingUsdc, 2)} USDC`
               : "Waiting"}
           </dd>
         </div>
         <div className="detail">
-          <dt>Replication</dt>
+          <dt>Open trades</dt>
           <dd>
             {status
-              ? `${status.replication.enabled ? "Enabled" : "Paused"} · ${status.replication.childCount} child runtimes · ${status.replication.lastOutcome || "No replication event yet"}`
+              ? openPositions.length
+                ? openPositions
+                    .map((position) => `${position.symbol} ${position.venue}`)
+                    .join(" | ")
+                : "No open trades"
               : "Waiting"}
           </dd>
         </div>
-        <div className="detail">
-          <dt>Self-modification</dt>
-          <dd>
-            {status
-              ? `${status.selfModification.enabled ? "Enabled" : "Disabled"} · ${status.selfModification.pendingProposal || status.selfModification.lastOutcome || "No self-mod proposal queued"}`
-              : "Waiting"}
-          </dd>
-        </div>
-        <div className="detail">
-          <dt>Treasury guardrails</dt>
-          <dd>
-            {status
-              ? `${status.treasury.transferGuardrails.arbitraryTransfersBlocked ? "Arbitrary transfers blocked" : "Unsafe"} Â· ${status.treasury.transferGuardrails.notes}`
-              : "Waiting"}
-          </dd>
-        </div>
-      </div>
-
-      <div className="reference-list">
-        {(status?.revenuePolicies ?? []).map((policy) => (
-          <article key={policy.revenueClass} className="reference-item">
-            <div>
-              <strong>{policy.revenueClass}</strong>
-              <p>{policy.notes}</p>
-            </div>
-            <span className="status-chip ready">
-              {policy.ownerPct}/{policy.burnPct}/{policy.reservePct}/{policy.tradingPct}/{policy.sessionTradePct}
-            </span>
-          </article>
-        ))}
       </div>
 
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Trace feed</p>
-          <h2>Recent public heartbeat and decisions</h2>
+          <p className="eyebrow">Feed</p>
+          <h2>Recent updates</h2>
         </div>
       </div>
 
@@ -336,18 +300,18 @@ export function AutonomousAgentPanel() {
                 <span>{formatTimestamp(event.createdAt)}</span>
                 <strong>{event.title}</strong>
                 <span>{event.detail}</span>
-                {event.rawTrace.length ? <span>{event.rawTrace.join(" · ")}</span> : null}
+                {event.rawTrace.length ? <span>{event.rawTrace.join(" | ")}</span> : null}
               </div>
               <div className="admin-history-actions">
                 <span className={`status-chip ${toneForEvent(event.kind) === "success" ? "ready" : ""}`}>
-                  {event.kind}
+                  {labelForEvent(event.kind)}
                 </span>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <p className="empty-state">The autonomous trace feed will appear after the next heartbeat.</p>
+        <p className="empty-state">Updates will appear here soon.</p>
       )}
     </section>
   );

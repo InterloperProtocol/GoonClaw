@@ -12,14 +12,11 @@ export default function AgentPage() {
       <SiteNav />
 
       <RouteHeader
-        eyebrow="Autonomous status"
-        title="Public heartbeat wall for the autonomous GoonClaw runtime."
+        eyebrow="Status"
+        title="GoonClaw status"
         summary={
           <>
-            Watch the live reserve posture, revenue routing, constitution hash,
-            tool activity, and recent decisions without exposing any private
-            controls. Public users can observe the runtime, but only the hidden
-            owner dashboard can intervene in the human-agent business partnership.
+            Live status, recent updates, and room health.
           </>
         }
         badges={[
@@ -27,49 +24,46 @@ export default function AgentPage() {
             Read-only
           </StatusBadge>,
           <StatusBadge key="heartbeat" tone="success">
-            Heartbeat
+            Live
           </StatusBadge>,
           <StatusBadge key="treasury" tone="neutral">
-            Treasury
+            Reserve
           </StatusBadge>,
           <StatusBadge key="trace" tone="warning">
-            Public trace
-          </StatusBadge>,
-          <StatusBadge key="runtime" tone="accent">
-            Vertex-only
+            Updates
           </StatusBadge>,
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
-              <p className="eyebrow">Heartbeat</p>
-              <strong>Autonomous loop</strong>
-              <span>Public status updates trail the active runtime heartbeat and policy engine.</span>
+              <p className="eyebrow">Status</p>
+              <strong>Live updates</strong>
+              <span>Refreshes automatically.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Reserve floor</p>
+              <p className="eyebrow">Reserve</p>
               <strong>0.069420 SOL</strong>
-              <span>Discretionary actions are denied if the reserve floor would be breached.</span>
+              <span>Used as the floor.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Trace mode</p>
-              <strong>Maximum available</strong>
-              <span>Prompt-visible reasoning, tool calls, and policy decisions are published here.</span>
+              <p className="eyebrow">Feed</p>
+              <strong>Public updates</strong>
+              <span>Recent notes and activity.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Control surface</p>
-              <strong>Hidden owner dashboard</strong>
-              <span>Guests can observe status, but only the private admin path can pause, settle, or post on behalf of the agent.</span>
+              <p className="eyebrow">Access</p>
+              <strong>Read only</strong>
+              <span>No controls on this page.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Inference</p>
-              <strong>Vertex AI Gemini only</strong>
-              <span>GoonClaw stays on Google Cloud infrastructure with Vertex as the sole model backend.</span>
+              <p className="eyebrow">Platform</p>
+              <strong>Google Cloud</strong>
+              <span>Running in the cloud.</span>
             </div>
             <div className="rail-card">
-              <p className="eyebrow">Settlement</p>
-              <strong>30 second cadence</strong>
-              <span>The wall refreshes automatically so heartbeat, treasury, and decision traces stay current.</span>
+              <p className="eyebrow">Refresh</p>
+              <strong>Automatic</strong>
+              <span>Keeps this page current.</span>
             </div>
           </div>
         }

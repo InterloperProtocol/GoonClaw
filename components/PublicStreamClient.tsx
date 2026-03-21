@@ -66,23 +66,23 @@ export function PublicStreamClient({
       <RouteHeader
         eyebrow="GoonStream"
         title={`@${state.profile.slug}`}
-        summary="This is the guest's public panel. It mirrors the chart focus, media embed, and live session state they chose to share."
+        summary="Public room view with chart, media, and live session status."
         badges={[
-          state.activeSession ? "Live session" : "Public page",
-          "Read-only view",
-          "Guest-session powered",
+          state.activeSession ? "Live" : "Public page",
+          "Read only",
+          "Shared room",
         ]}
         rail={
           <div className="rail-grid">
             <div className="rail-card">
               <p className="eyebrow">Status</p>
               <strong>{state.activeSession?.status || "Offline"}</strong>
-              <span>Shows whether the shared device session is live right now.</span>
+              <span>Live room status.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Mode</p>
               <strong>{state.activeSession?.mode || "Idle"}</strong>
-              <span>Live tracking and guided pattern status stay public here.</span>
+              <span>Current playback mode.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Device</p>
@@ -91,12 +91,12 @@ export function PublicStreamClient({
                   state.activeSession?.deviceType ||
                   "No device active"}
               </strong>
-              <span>Credentials stay private, but the active setup remains visible.</span>
+              <span>Active setup.</span>
             </div>
             <div className="rail-card">
               <p className="eyebrow">Default token</p>
               <strong>{shorten(state.profile.defaultContractAddress)}</strong>
-              <span>The stream falls back to this token when no live session overrides it.</span>
+              <span>Used when nothing is live.</span>
             </div>
           </div>
         }
@@ -113,7 +113,7 @@ export function PublicStreamClient({
         />
         <MediaEmbedPanel
           title="Shared media"
-          description="This is the same media link the streamer loaded in MyGoonClaw."
+          description="Shared media for this room."
           defaultUrl={state.profile.mediaUrl}
           storageKey={`public-stream-${state.profile.slug}`}
           readOnly
@@ -125,7 +125,7 @@ export function PublicStreamClient({
           <div className="panel-header">
             <div>
               <p className="eyebrow">Live state</p>
-              <h2>What the guest is doing right now</h2>
+              <h2>Live now</h2>
             </div>
           </div>
 

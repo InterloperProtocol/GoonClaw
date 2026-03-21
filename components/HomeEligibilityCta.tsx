@@ -43,7 +43,7 @@ export function HomeEligibilityCta() {
           placeholder="Paste a Solana wallet"
         />
       </label>
-      <p className="inline-note">You can review the result and send access from the homepage section.</p>
+      <p className="inline-note">The wallet checker will open with this address filled in.</p>
 
       <div className="button-row">
         <button

@@ -27,15 +27,13 @@ export function SiteNav() {
     <nav className="site-nav panel">
       <div className="site-nav-copy">
         <p className="eyebrow">GoonClaw</p>
-        <strong>Entity wall plus user workspace</strong>
+        <strong>Charts, streams, and access</strong>
         <p className="site-nav-summary">
-          GoonClaw is the autonomous entity and owner-facing public wall. MyGoonClaw
-          is the user workspace where streamers manage devices, sessions, media,
-          and public pages. The rest of the app stays focused on discovery,
-          access, and platform visibility.
+          GoonClaw shows the live room. MyGoonClaw is your workspace. GoonConnect,
+          GoonBook, and Status keep the rest of the app easy to browse.
         </p>
         <div className="route-badges">
-          <StatusBadge tone="accent">You&apos;re here: {activeItem.label}</StatusBadge>
+          <StatusBadge tone="accent">Current: {activeItem.label}</StatusBadge>
           <StatusBadge tone="neutral">Live tools, easy to scan</StatusBadge>
         </div>
       </div>
