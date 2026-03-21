@@ -16,13 +16,6 @@ import { addDays, fromBase64Url, nowIso, toBase64Url } from "@/lib/utils";
 const INTERNAL_ADMIN_COOKIE = "goonclaw_internal_admin";
 export const INTERNAL_ADMIN_ROUTE = "/amber-vault-ops";
 
-type AdminUserDoc = {
-  id: string;
-  email: string;
-  username: string;
-  displayName?: string | null;
-};
-
 type StreamerControlDoc = {
   id: string;
   guestId: string;
@@ -60,6 +53,12 @@ type DashboardUser = {
   reason: string | null;
 };
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function signValue(value: string) {
   return createHmac("sha256", getServerEnv().APP_SESSION_SECRET)
     .update(value)
@@ -87,16 +86,59 @@ async function persistAdminSession(session: AdminSession) {
   });
 }
 
-function normalizeAdminUser(doc: Partial<AdminUserDoc> | null | undefined) {
-  if (!doc?.id || !doc.username) {
+function normalizeAdminUser(doc: unknown) {
+  const record = asRecord(doc);
+  if (!record?.id || !record.username) {
     return null;
   }
 
   return {
-    id: String(doc.id),
-    username: String(doc.username),
-    displayName: doc.displayName ? String(doc.displayName) : null,
+    id: String(record.id),
+    username: String(record.username),
+    displayName: record.displayName ? String(record.displayName) : null,
   };
+}
+
+function normalizeStreamerControl(doc: unknown): StreamerControlDoc | null {
+  const record = asRecord(doc);
+  if (!record?.guestId) {
+    return null;
+  }
+
+  return {
+    id: record.id ? String(record.id) : "",
+    guestId: String(record.guestId),
+    slug: typeof record.slug === "string" ? record.slug : null,
+    isDisabled:
+      typeof record.isDisabled === "boolean" ? record.isDisabled : null,
+    disabledAt:
+      typeof record.disabledAt === "string" ? record.disabledAt : null,
+    disabledBy:
+      typeof record.disabledBy === "string" ? record.disabledBy : null,
+    reason: typeof record.reason === "string" ? record.reason : null,
+    createdAt: typeof record.createdAt === "string" ? record.createdAt : undefined,
+    updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : undefined,
+  };
+}
+
+function isPayloadUnavailableError(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+
+  return (
+    message.includes("cannot connect to SQLite") ||
+    message.includes("Unable to open connection to local database") ||
+    message.includes("ConnectionFailed")
+  );
+}
+
+function logPayloadUnavailable(context: string, error: unknown) {
+  if (!isPayloadUnavailableError(error)) {
+    return false;
+  }
+
+  console.warn(`[internal-admin] Payload unavailable during ${context}`, error);
+  return true;
 }
 
 function deriveAdminEmail(username: string) {
@@ -110,61 +152,75 @@ export async function ensureSeededInternalAdmin() {
     return null;
   }
 
-  const payload = await getPayloadClient();
-  const existing = await payload.find({
-    collection: "admins",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-  });
+  try {
+    const payload = await getPayloadClient();
+    const existing = await payload.find({
+      collection: "admins",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+    });
 
-  if (existing.docs.length > 0) {
-    return normalizeAdminUser(existing.docs[0] as Partial<AdminUserDoc>);
+    if (existing.docs.length > 0) {
+      return normalizeAdminUser(existing.docs[0]);
+    }
+
+    const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
+    const created = await payload.create({
+      collection: "admins",
+      data: {
+        displayName: "Internal Admin",
+        email: deriveAdminEmail(username),
+        password,
+        username,
+      },
+      depth: 0,
+      overrideAccess: true,
+    });
+
+    return normalizeAdminUser(created);
+  } catch (error) {
+    if (logPayloadUnavailable("ensureSeededInternalAdmin", error)) {
+      return null;
+    }
+    throw error;
   }
-
-  const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
-  const created = await payload.create({
-    collection: "admins",
-    data: {
-      displayName: "Internal Admin",
-      email: deriveAdminEmail(username),
-      password,
-      username,
-    },
-    depth: 0,
-    overrideAccess: true,
-  });
-
-  return normalizeAdminUser(created as Partial<AdminUserDoc>);
 }
 
 export async function loginInternalAdmin(username: string, password: string) {
   await ensureSeededInternalAdmin();
 
-  const payload = await getPayloadClient();
-  const result = await payload.login({
-    collection: "admins",
-    data: {
-      password,
-      username,
-    } as never,
-    depth: 0,
-    overrideAccess: true,
-  });
+  try {
+    const payload = await getPayloadClient();
+    const result = await payload.login({
+      collection: "admins",
+      data: {
+        password,
+        username,
+      } as never,
+      depth: 0,
+      overrideAccess: true,
+    });
 
-  const user = normalizeAdminUser(result.user as Partial<AdminUserDoc>);
-  if (!user) {
-    throw new Error("Admin account could not be loaded");
+    const user = normalizeAdminUser(result.user);
+    if (!user) {
+      throw new Error("Admin account could not be loaded");
+    }
+
+    await persistAdminSession({
+      id: user.id,
+      username: user.username,
+      issuedAt: nowIso(),
+      expiresAt: addDays(new Date(), 7).toISOString(),
+    });
+
+    return user;
+  } catch (error) {
+    if (logPayloadUnavailable("loginInternalAdmin", error)) {
+      throw new Error("Internal admin storage is unavailable right now.");
+    }
+    throw error;
   }
-
-  await persistAdminSession({
-    id: user.id,
-    username: user.username,
-    issuedAt: nowIso(),
-    expiresAt: addDays(new Date(), 7).toISOString(),
-  });
-
-  return user;
 }
 
 export async function clearInternalAdminSession() {
@@ -185,21 +241,31 @@ export async function getInternalAdminSession() {
     return null;
   }
 
-  const client = await getPayloadClient();
-  const admin = await client.findByID({
-    collection: "admins",
-    depth: 0,
-    id: payload.id,
-    overrideAccess: true,
-  }).catch(() => null);
+  try {
+    const client = await getPayloadClient();
+    const admin = await client
+      .findByID({
+        collection: "admins",
+        depth: 0,
+        id: payload.id,
+        overrideAccess: true,
+      })
+      .catch(() => null);
 
-  const user = normalizeAdminUser(admin as Partial<AdminUserDoc>);
-  if (!user) {
-    jar.delete(INTERNAL_ADMIN_COOKIE);
-    return null;
+    const user = normalizeAdminUser(admin);
+    if (!user) {
+      jar.delete(INTERNAL_ADMIN_COOKIE);
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    if (logPayloadUnavailable("getInternalAdminSession", error)) {
+      jar.delete(INTERNAL_ADMIN_COOKIE);
+      return null;
+    }
+    throw error;
   }
-
-  return user;
 }
 
 export async function requireInternalAdminSession() {
@@ -211,60 +277,97 @@ export async function requireInternalAdminSession() {
 }
 
 async function findStreamerControl(guestId: string) {
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "streamer-controls",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    where: {
-      guestId: {
-        equals: guestId,
+  try {
+    const payload = await getPayloadClient();
+    const result = await payload.find({
+      collection: "streamer-controls",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: {
+        guestId: {
+          equals: guestId,
+        },
       },
-    },
-  });
+    });
 
-  return (result.docs[0] as StreamerControlDoc | undefined) ?? null;
+    return normalizeStreamerControl(result.docs[0]);
+  } catch (error) {
+    if (logPayloadUnavailable("findStreamerControl", error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 async function listStreamerControls() {
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "streamer-controls",
-    depth: 0,
-    limit: 200,
-    overrideAccess: true,
-  });
+  try {
+    const payload = await getPayloadClient();
+    const result = await payload.find({
+      collection: "streamer-controls",
+      depth: 0,
+      limit: 200,
+      overrideAccess: true,
+    });
 
-  return result.docs as StreamerControlDoc[];
+    return result.docs
+      .map((doc) => normalizeStreamerControl(doc))
+      .filter((doc): doc is StreamerControlDoc => Boolean(doc));
+  } catch (error) {
+    if (logPayloadUnavailable("listStreamerControls", error)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 async function upsertStreamerControl(
   guestId: string,
   data: Omit<StreamerControlDoc, "id" | "guestId">,
 ) {
-  const payload = await getPayloadClient();
-  const existing = await findStreamerControl(guestId);
+  try {
+    const payload = await getPayloadClient();
+    const existing = await findStreamerControl(guestId);
 
-  if (existing?.id) {
-    return (await payload.update({
+    if (existing?.id) {
+      const updated = await payload.update({
+        collection: "streamer-controls",
+        data,
+        depth: 0,
+        id: existing.id,
+        overrideAccess: true,
+      });
+      const normalized = normalizeStreamerControl(updated);
+      if (!normalized) {
+        throw new Error("Streamer control update failed");
+      }
+      return normalized;
+    }
+
+    const created = await payload.create({
       collection: "streamer-controls",
-      data,
+      data: {
+        guestId,
+        ...data,
+      },
       depth: 0,
-      id: existing.id,
       overrideAccess: true,
-    })) as StreamerControlDoc;
+    });
+    const normalized = normalizeStreamerControl(created);
+    if (!normalized) {
+      throw new Error("Streamer control create failed");
+    }
+    return normalized;
+  } catch (error) {
+    if (logPayloadUnavailable("upsertStreamerControl", error)) {
+      return {
+        id: "",
+        guestId,
+        ...data,
+      };
+    }
+    throw error;
   }
-
-  return (await payload.create({
-    collection: "streamer-controls",
-    data: {
-      guestId,
-      ...data,
-    },
-    depth: 0,
-    overrideAccess: true,
-  })) as StreamerControlDoc;
 }
 
 export async function isGuestDisabled(guestId: string) {

@@ -21,6 +21,10 @@ type ResolvedMedia =
 
 type MediaHistory = Record<string, string[]>;
 const ALL_MEDIA_HISTORY_KEY = "__all__";
+type RelatedMediaResponse = {
+  items?: string[];
+  error?: string;
+};
 
 function normalizeProviderKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -71,6 +75,7 @@ export function MediaEmbedPanel({
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [savedHistoryCount, setSavedHistoryCount] = useState(0);
+  const [youtubeRelatedUrls, setYoutubeRelatedUrls] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const historyStorageKey = `${storageKey}:history`;
 
@@ -207,6 +212,10 @@ export function MediaEmbedPanel({
   }, [activeUrl, onActiveUrlChange]);
 
   useEffect(() => {
+    setYoutubeRelatedUrls([]);
+  }, [activeUrl]);
+
+  useEffect(() => {
     if (!resolved || resolved.kind !== "video" || resolved.streamType !== "hls") {
       return;
     }
@@ -294,19 +303,77 @@ export function MediaEmbedPanel({
     setResolved(null);
     setResolveError(null);
     setSavedHistoryCount(0);
+    setYoutubeRelatedUrls([]);
     if (typeof window !== "undefined" && !readOnly) {
       window.localStorage.removeItem(storageKey);
     }
   }
 
-  function playRandomMedia() {
+  async function loadYoutubeRelatedUrls() {
+    const trimmedUrl = activeUrl.trim();
+    if (!trimmedUrl || resolved?.provider !== "YouTube") {
+      return [];
+    }
+
+    const response = await fetch(
+      `/api/media/related?url=${encodeURIComponent(trimmedUrl)}`,
+    );
+    const payload = (await response.json()) as RelatedMediaResponse;
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Couldn't load related YouTube videos.");
+    }
+
+    const items = (payload.items ?? []).filter(Boolean);
+    if (!items.length) {
+      return [];
+    }
+
     const history = readHistory();
-    const choices = (history[ALL_MEDIA_HISTORY_KEY] ?? []).filter(
+    const providerKey = normalizeProviderKey(resolved.provider);
+    const providerHistory = history[providerKey] ?? [];
+    const allHistory = history[ALL_MEDIA_HISTORY_KEY] ?? [];
+    const nextProviderHistory = Array.from(
+      new Set([trimmedUrl, ...providerHistory, ...items]),
+    ).slice(0, 24);
+    const nextAllHistory = Array.from(
+      new Set([trimmedUrl, ...allHistory, ...items]),
+    ).slice(0, 48);
+
+    writeHistory({
+      ...history,
+      [providerKey]: nextProviderHistory,
+      [ALL_MEDIA_HISTORY_KEY]: nextAllHistory,
+    });
+    setSavedHistoryCount(nextAllHistory.length);
+    setYoutubeRelatedUrls(items);
+
+    return items;
+  }
+
+  const canUseYoutubeRelatedQueue =
+    resolved?.provider === "YouTube" && Boolean(activeUrl.trim());
+  const canPlayRandom = savedHistoryCount >= 2 || canUseYoutubeRelatedQueue;
+
+  async function playRandomMedia() {
+    const history = readHistory();
+    let choices = (history[ALL_MEDIA_HISTORY_KEY] ?? []).filter(
       (item) => item !== activeUrl.trim(),
     );
 
+    if (!choices.length && canUseYoutubeRelatedQueue) {
+      const relatedChoices = youtubeRelatedUrls.length
+        ? youtubeRelatedUrls
+        : await loadYoutubeRelatedUrls();
+      choices = relatedChoices.filter((item) => item !== activeUrl.trim());
+    }
+
     if (!choices.length) {
-      setResolveError("Load at least two saved videos before using random playback.");
+      setResolveError(
+        canUseYoutubeRelatedQueue
+          ? "Couldn't find a related YouTube video to queue yet."
+          : "Load at least two saved videos before using random playback.",
+      );
       return;
     }
 
@@ -358,8 +425,8 @@ export function MediaEmbedPanel({
             </button>
             <button
               className="button button-secondary small"
-              disabled={savedHistoryCount < 2}
-              onClick={playRandomMedia}
+              disabled={!canPlayRandom}
+              onClick={() => void playRandomMedia()}
               type="button"
             >
               Play random video

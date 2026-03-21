@@ -308,7 +308,8 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
     VERTEX_AI_PROJECT_ID:
       raw.VERTEX_AI_PROJECT_ID?.trim() ||
       raw.FIREBASE_PROJECT_ID?.trim() ||
-      firebaseConfigProjectId,
+      firebaseConfigProjectId ||
+      (!isProduction ? "goonclaw-app" : ""),
     VERTEX_AI_LOCATION: raw.VERTEX_AI_LOCATION?.trim() || "global",
     VERTEX_AI_MODEL: raw.VERTEX_AI_MODEL?.trim() || "gemini-2.5-flash",
     WORKER_URL: raw.WORKER_URL?.trim() || "",

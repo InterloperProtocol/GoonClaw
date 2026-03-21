@@ -500,12 +500,9 @@ export async function loadNewsFeed(input: {
   const customSources = (input.rssFeeds ?? [])
     .map((url) => buildCustomSource(url))
     .filter((source): source is NewsSource => Boolean(source));
-  const rssSources = query
-    ? [...NEWS_SOURCE_CATALOG, ...customSources]
-    : [
-        ...NEWS_SOURCE_CATALOG.filter((source) => source.categories.includes(category)),
-        ...customSources,
-      ];
+  const catalogSources = query
+    ? NEWS_SOURCE_CATALOG
+    : NEWS_SOURCE_CATALOG.filter((source) => source.categories.includes(category));
 
   const apiPromise = query
     ? fetchJson(
@@ -515,17 +512,18 @@ export async function loadNewsFeed(input: {
         `${NEWS_API_BASE}/api/news?category=${encodeURIComponent(category)}&limit=${limit}`,
       );
 
-  const [apiPayload, rssResults] = await Promise.all([
-    apiPromise.catch(() => null),
-    Promise.all(
-      rssSources.map(async (source) => ({
-        source,
-        articles: await fetchSourceArticles(source),
-      })),
-    ),
-  ]);
+  const apiPayload = await apiPromise.catch(() => null);
 
   const apiArticles = apiPayload ? normalizeApiArticles(apiPayload) : [];
+  const rssSources = apiArticles.length
+    ? customSources
+    : [...catalogSources, ...customSources];
+  const rssResults = await Promise.all(
+    rssSources.map(async (source) => ({
+      source,
+      articles: await fetchSourceArticles(source),
+    })),
+  );
   const rssArticles = rssResults.flatMap((result) => result.articles);
   const mergedArticles = sortArticles(uniqueArticles([...apiArticles, ...rssArticles]));
   const filteredArticles = query
@@ -536,8 +534,11 @@ export async function loadNewsFeed(input: {
     : mergedArticles;
   const sources = Array.from(
     new Set([
-      ...(apiPayload?.sources ?? []),
-      ...rssSources.map((source) => source.label),
+      ...(apiPayload?.sources?.length
+        ? apiPayload.sources
+        : apiArticles.length
+          ? apiArticles.map((article) => article.source)
+          : catalogSources.map((source) => source.label)),
     ]),
   );
 

@@ -650,6 +650,123 @@ export function extractYouTubeId(url: URL) {
   return url.searchParams.get("v") ?? "";
 }
 
+export function extractYouTubeSearchResultIds(
+  pageHtml: string,
+  currentVideoId: string,
+  limit = 8,
+) {
+  const maxItems = Math.min(Math.max(limit, 1), 24);
+  const seen = new Set<string>(currentVideoId ? [currentVideoId] : []);
+  const results: string[] = [];
+
+  for (const match of pageHtml.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)) {
+    const videoId = match[1];
+    if (!videoId || seen.has(videoId)) {
+      continue;
+    }
+
+    seen.add(videoId);
+    results.push(videoId);
+
+    if (results.length >= maxItems) {
+      break;
+    }
+  }
+
+  return results;
+}
+
+type YouTubeOEmbedPayload = {
+  title?: string;
+  author_name?: string;
+};
+
+export async function loadRelatedYouTubeUrls(value: string, limit = 8) {
+  try {
+    const url = new URL(value.trim());
+    const currentVideoId = extractYouTubeId(url);
+
+    if (!currentVideoId) {
+      return [];
+    }
+
+    const oembedResponse = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(
+        url.toString(),
+      )}&format=json`,
+      {
+        headers: REQUEST_HEADERS,
+        next: { revalidate: 600 },
+      },
+    );
+
+    if (!oembedResponse.ok) {
+      return [];
+    }
+
+    const oembedPayload = (await oembedResponse.json()) as YouTubeOEmbedPayload;
+    const title = oembedPayload.title?.trim() ?? "";
+    const authorName = oembedPayload.author_name?.trim() ?? "";
+    const searchQueries = Array.from(
+      new Set(
+        [
+          title,
+          [authorName, title].filter(Boolean).join(" "),
+          title ? `${title} remix` : "",
+        ].filter(Boolean),
+      ),
+    );
+
+    if (!searchQueries.length) {
+      return [];
+    }
+
+    const relatedUrls: string[] = [];
+    const seen = new Set<string>();
+
+    for (const searchQuery of searchQueries) {
+      const searchResponse = await fetch(
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(
+          searchQuery,
+        )}`,
+        {
+          headers: REQUEST_HEADERS,
+          next: { revalidate: 600 },
+        },
+      );
+
+      if (!searchResponse.ok) {
+        continue;
+      }
+
+      const pageHtml = await searchResponse.text();
+      const videoIds = extractYouTubeSearchResultIds(
+        pageHtml,
+        currentVideoId,
+        limit,
+      );
+
+      for (const videoId of videoIds) {
+        const nextUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        if (seen.has(nextUrl)) {
+          continue;
+        }
+
+        seen.add(nextUrl);
+        relatedUrls.push(nextUrl);
+
+        if (relatedUrls.length >= limit) {
+          return relatedUrls;
+        }
+      }
+    }
+
+    return relatedUrls;
+  } catch {
+    return [];
+  }
+}
+
 function extractPornhubViewKey(url: URL) {
   if (url.pathname.startsWith("/embed/")) {
     return url.pathname.split("/").filter(Boolean)[1] ?? "";

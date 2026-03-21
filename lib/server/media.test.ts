@@ -1,16 +1,23 @@
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildYtDlpCookieArgs,
   buildKnownMediaConfig,
+  extractYouTubeSearchResultIds,
+  loadRelatedYouTubeUrls,
   mapYtDlpFailureMessage,
   normalizeYtDlpMedia,
   resolveMediaSource,
 } from "@/lib/server/media";
 
 describe("media source resolver", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it("builds a YouTube embed from a watch URL", () => {
     expect(
       buildKnownMediaConfig(
@@ -243,5 +250,58 @@ describe("media source resolver", () => {
     ).toBe(
       "YouTube asked for bot verification. Configure YT_DLP_COOKIES_PATH or YT_DLP_COOKIES_FROM_BROWSER on the server for authenticated yt-dlp playback.",
     );
+  });
+  it("extracts distinct YouTube search result ids excluding the current video", () => {
+    expect(
+      extractYouTubeSearchResultIds(
+        [
+          '"videoId":"e5nyQmaq4k4"',
+          '"videoId":"e5nyQmaq4k4"',
+          '"videoId":"61i2iDz7u04"',
+          '"videoId":"9bZkp7q19f0"',
+        ].join(" "),
+        "e5nyQmaq4k4",
+        4,
+      ),
+    ).toEqual(["61i2iDz7u04", "9bZkp7q19f0"]);
+  });
+
+  it("loads related YouTube urls from oembed and search results", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            title: "BITCONNECT EDM REMIX (FULL SONG)",
+            author_name: "Dylan Locke",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          [
+            '"videoId":"e5nyQmaq4k4"',
+            '"videoId":"61i2iDz7u04"',
+            '"videoId":"9bZkp7q19f0"',
+          ].join(" "),
+          { status: 200 },
+        ),
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      loadRelatedYouTubeUrls(
+        "https://www.youtube.com/watch?v=e5nyQmaq4k4",
+        2,
+      ),
+    ).resolves.toEqual([
+      "https://www.youtube.com/watch?v=61i2iDz7u04",
+      "https://www.youtube.com/watch?v=9bZkp7q19f0",
+    ]);
   });
 });

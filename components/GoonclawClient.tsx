@@ -586,7 +586,6 @@ export function GoonclawClient({ defaultMediaUrl, variant }: Props) {
         <PublicChatPanel
           eyebrow="Agent"
           title="GoonClaw agent chatbot"
-          description="Use the lightweight assistant for fast questions and simple prompts while you keep the dashboard live."
         />
         <MediaEmbedPanel
           title="Video or stream"

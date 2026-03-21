@@ -1,7 +1,27 @@
+import { mkdirSync } from "node:fs";
+import path from "node:path";
+
 import { sqliteAdapter } from "@payloadcms/db-sqlite";
 import { buildConfig } from "payload";
 
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean(req.user);
+
+function resolvePayloadDatabaseUrl() {
+  const configuredUrl =
+    process.env.PAYLOAD_DATABASE_URL || "file:./.data/goonclaw-payload.db";
+
+  if (!configuredUrl.startsWith("file:")) {
+    return configuredUrl;
+  }
+
+  const rawPath = configuredUrl.slice("file:".length) || "./.data/goonclaw-payload.db";
+  const absolutePath = path.resolve(process.cwd(), rawPath);
+  mkdirSync(path.dirname(absolutePath), { recursive: true });
+
+  return `file:${absolutePath.replace(/\\/g, "/")}`;
+}
+
+const payloadDatabaseUrl = resolvePayloadDatabaseUrl();
 
 export default buildConfig({
   admin: {
@@ -91,7 +111,7 @@ export default buildConfig({
   ],
   db: sqliteAdapter({
     client: {
-      url: process.env.PAYLOAD_DATABASE_URL || "file:./.data/goonclaw-payload.db",
+      url: payloadDatabaseUrl,
     },
   }),
   secret: process.env.PAYLOAD_SECRET || process.env.APP_SESSION_SECRET || "goonclaw-dev-payload-secret",

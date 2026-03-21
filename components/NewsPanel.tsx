@@ -150,6 +150,23 @@ export function NewsPanel({
         Stay close to the market with a live headline mix and your own saved RSS feeds.
       </p>
 
+      <div className="news-tabs">
+        {categories.map((item) => (
+          <button
+            key={item.id}
+            className={
+              category === item.id
+                ? "button button-primary small"
+                : "button button-ghost small"
+            }
+            onClick={() => setCategory(item.id)}
+            type="button"
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
       {error ? <p className="error-banner">{error}</p> : null}
       {feed?.sources.length ? (
         <div className="route-badges">
@@ -157,6 +174,19 @@ export function NewsPanel({
           <span className="status-badge">
             {feed.sources.length} free sources
           </span>
+        </div>
+      ) : null}
+
+      {feed?.sources.length ? (
+        <div className="news-source-strip">
+          <span className="source-strip-label">Default feeds</span>
+          <div className="news-source-grid">
+            {feed.sources.map((source) => (
+              <span key={source} className="status-badge">
+                {source}
+              </span>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -183,39 +213,9 @@ export function NewsPanel({
       ) : null}
 
       <div className="news-controls">
-        {feed?.sources.length ? (
-          <div className="history-list compact-scroll-feed news-default-feeds">
-            {feed.sources.map((source) => (
-              <div key={source} className="history-item">
-                <div>
-                  <span>Default feed</span>
-                  <strong>{source}</strong>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="news-tabs">
-          {categories.map((item) => (
-            <button
-              key={item.id}
-              className={
-                category === item.id
-                  ? "button button-primary small"
-                  : "button button-ghost small"
-              }
-              onClick={() => setCategory(item.id)}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
         <div className="media-toolbar">
           <label className="field">
-            <span>Add a custom feed</span>
+            <span>Add RSS feed</span>
             <input
               value={customFeedDraft}
               onChange={(event) => setCustomFeedDraft(event.target.value)}

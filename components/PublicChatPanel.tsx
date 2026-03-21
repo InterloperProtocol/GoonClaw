@@ -31,7 +31,7 @@ function formatResetTime(value: string | null) {
 export function PublicChatPanel({
   eyebrow = "Quick chat",
   title = "Ask the lightweight chatbot",
-  description = "General chat only. This panel does not touch devices, queues, admin tools, or the private pump agent.",
+  description = "",
 }: {
   eyebrow?: string;
   title?: string;
@@ -180,8 +180,6 @@ export function PublicChatPanel({
       <div className="route-badges">
         <StatusBadge tone="accent">Vertex AI Gemini</StatusBadge>
         <StatusBadge tone="accent">20 messages / 24h</StatusBadge>
-        <StatusBadge tone="neutral">No admin access</StatusBadge>
-        <StatusBadge tone="success">General-purpose only</StatusBadge>
       </div>
 
       <div className="chat-meta">
@@ -240,7 +238,7 @@ export function PublicChatPanel({
               }
             }}
             placeholder="Ask a general question"
-            rows={4}
+            rows={3}
           />
         </label>
         <div className="button-row">

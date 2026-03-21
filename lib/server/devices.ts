@@ -3,18 +3,50 @@ import { AutoblowDevice, HandyDevice } from "ive-connect";
 import { DeviceCredentials, DeviceProfile, FunscriptPayload, LiveCommand } from "@/lib/types";
 
 const AUTOBLOW_LATENCY_API = "https://latency.autoblowapi.com";
+const AUTOBLOW_TIMEOUT_MS = 10_000;
 
 async function requestDevice(
   input: string,
   init: RequestInit,
   failureMessage: string,
 ) {
-  const response = await fetch(input, init);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AUTOBLOW_TIMEOUT_MS);
+  const response = await fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(body || `${failureMessage} (${response.status})`);
   }
   return response;
+}
+
+function normalizeAutoblowClusterBase(cluster: string) {
+  const trimmed = cluster.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    return new URL(withProtocol).toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function buildAutoblowClusterUrl(cluster: string, routePath: string) {
+  const baseUrl = normalizeAutoblowClusterBase(cluster);
+  if (!baseUrl) {
+    throw new Error("Autoblow device cluster unavailable");
+  }
+
+  return new URL(routePath, `${baseUrl}/`).toString();
 }
 
 export interface RuntimeAdapter {
@@ -31,17 +63,24 @@ export interface RuntimeAdapter {
 }
 
 async function getAutoblowCluster(deviceToken: string) {
-  const response = await fetch(`${AUTOBLOW_LATENCY_API}/autoblow/connected`, {
-    headers: { "x-device-token": deviceToken },
-  });
-  if (!response.ok) {
-    throw new Error("Autoblow device not connected");
-  }
+  const response = await requestDevice(
+    `${AUTOBLOW_LATENCY_API}/autoblow/connected`,
+    {
+      method: "GET",
+      headers: { "x-device-token": deviceToken },
+    },
+    "Autoblow device not connected",
+  );
   const payload = (await response.json()) as { connected: boolean; cluster: string };
   if (!payload.connected || !payload.cluster) {
     throw new Error("Autoblow device cluster unavailable");
   }
-  return payload.cluster.startsWith("http") ? payload.cluster : `https://${payload.cluster}`;
+  const baseUrl = normalizeAutoblowClusterBase(payload.cluster);
+  if (!baseUrl) {
+    throw new Error("Autoblow device cluster unavailable");
+  }
+
+  return baseUrl;
 }
 
 class AutoblowRuntimeAdapter implements RuntimeAdapter {
@@ -61,17 +100,13 @@ class AutoblowRuntimeAdapter implements RuntimeAdapter {
   async connect() {
     if (this.connected) return;
     this.clusterUrl = await getAutoblowCluster(this.credentials.deviceToken ?? "");
-    const ok = await this.device.connect();
-    if (!ok) {
-      throw new Error("Failed to connect Autoblow device");
-    }
     this.connected = true;
   }
 
   async stop() {
     if (this.clusterUrl) {
       await requestDevice(
-        `${this.clusterUrl}/autoblow/oscillate/stop`,
+        buildAutoblowClusterUrl(this.clusterUrl, "autoblow/oscillate/stop"),
         {
           method: "PUT",
           headers: { "x-device-token": this.credentials.deviceToken ?? "" },
@@ -79,17 +114,14 @@ class AutoblowRuntimeAdapter implements RuntimeAdapter {
         "Failed to stop Autoblow device",
       ).catch(() => null);
     }
-    if (this.connected) {
-      await this.device.stop().catch(() => false);
-    }
+    await this.device.stop().catch(() => false);
   }
 
   async getStatus() {
     await this.connect();
-    const state = await this.device.getState();
     return {
       connected: this.connected,
-      state,
+      clusterUrl: this.clusterUrl,
     };
   }
 
@@ -101,7 +133,7 @@ class AutoblowRuntimeAdapter implements RuntimeAdapter {
     await this.connect();
     if (!this.clusterUrl) throw new Error("Autoblow cluster unavailable");
     await requestDevice(
-      `${this.clusterUrl}/autoblow/oscillate`,
+      buildAutoblowClusterUrl(this.clusterUrl, "autoblow/oscillate"),
       {
         method: "PUT",
         headers: {
@@ -119,13 +151,16 @@ class AutoblowRuntimeAdapter implements RuntimeAdapter {
   }
 
   async startScript(script: FunscriptPayload, resumeAtMs: number) {
-    await this.connect();
+    const connected = await this.device.connect();
+    if (!connected) {
+      throw new Error("Failed to connect Autoblow device for script playback");
+    }
     const result = await this.device.prepareScript(script);
     if (!result.success) {
       throw new Error(result.error ?? "Failed to prepare Autoblow script");
     }
-    const ok = await this.device.play(resumeAtMs, 1, true);
-    if (!ok) throw new Error("Failed to start Autoblow script playback");
+    const started = await this.device.play(resumeAtMs, 1, true);
+    if (!started) throw new Error("Failed to start Autoblow script playback");
   }
 }
 
