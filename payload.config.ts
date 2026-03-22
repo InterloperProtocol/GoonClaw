@@ -7,8 +7,11 @@ import { buildConfig } from "payload";
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean(req.user);
 
 function resolvePayloadDatabaseUrl() {
-  const configuredUrl =
-    process.env.PAYLOAD_DATABASE_URL || "file:./.data/goonclaw-payload.db";
+  const defaultDatabaseUrl =
+    process.env.NODE_ENV === "production"
+      ? "file:/tmp/goonclaw-payload.db"
+      : "file:./.data/goonclaw-payload.db";
+  const configuredUrl = process.env.PAYLOAD_DATABASE_URL || defaultDatabaseUrl;
 
   if (!configuredUrl.startsWith("file:")) {
     return configuredUrl;
