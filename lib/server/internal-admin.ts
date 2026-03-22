@@ -84,6 +84,22 @@ type DashboardGoonBookPost = GoonBookPostRecord & {
   handle: string;
 };
 
+function getConfiguredInternalAdmin() {
+  const env = getServerEnv();
+  const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
+  const password = env.INTERNAL_ADMIN_PASSWORD.trim();
+
+  return {
+    password,
+    user: {
+      displayName: "Internal Admin",
+      id: `env-admin:${username}`,
+      username,
+    },
+    username,
+  };
+}
+
 function asRecord(value: unknown) {
   return value && typeof value === "object"
     ? (value as Record<string, unknown>)
@@ -184,15 +200,15 @@ function deriveAdminEmail(username: string) {
 }
 
 export async function ensureSeededInternalAdmin() {
-  const env = getServerEnv();
-  const password = env.INTERNAL_ADMIN_PASSWORD.trim();
+  const configuredAdmin = getConfiguredInternalAdmin();
+  const password = configuredAdmin.password;
   if (!password) {
     return null;
   }
 
   try {
     const payload = await getPayloadClient();
-    const username = env.INTERNAL_ADMIN_LOGIN.trim() || "admin";
+    const username = configuredAdmin.username;
     const email = deriveAdminEmail(username);
     const existing = await payload.find({
       collection: "admins",
@@ -239,13 +255,20 @@ export async function ensureSeededInternalAdmin() {
     return normalizeAdminUser(created);
   } catch (error) {
     if (logPayloadUnavailable("ensureSeededInternalAdmin", error)) {
-      return null;
+      return configuredAdmin.user;
     }
     throw error;
   }
 }
 
 export async function loginInternalAdmin(username: string, password: string) {
+  const configuredAdmin = getConfiguredInternalAdmin();
+  const normalizedUsername = username.trim();
+
+  if (!configuredAdmin.password) {
+    throw new Error("Internal admin password is not configured.");
+  }
+
   await ensureSeededInternalAdmin();
 
   try {
@@ -254,7 +277,7 @@ export async function loginInternalAdmin(username: string, password: string) {
       collection: "admins",
       data: {
         password,
-        username,
+        username: normalizedUsername,
       } as never,
       depth: 0,
       overrideAccess: true,
@@ -275,7 +298,21 @@ export async function loginInternalAdmin(username: string, password: string) {
     return user;
   } catch (error) {
     if (logPayloadUnavailable("loginInternalAdmin", error)) {
-      throw new Error("Internal admin storage is unavailable right now.");
+      if (
+        normalizedUsername === configuredAdmin.username &&
+        password === configuredAdmin.password
+      ) {
+        await persistAdminSession({
+          id: configuredAdmin.user.id,
+          username: configuredAdmin.user.username,
+          issuedAt: nowIso(),
+          expiresAt: addDays(new Date(), 7).toISOString(),
+        });
+
+        return configuredAdmin.user;
+      }
+
+      throw new Error("Invalid admin credentials");
     }
     throw error;
   }
@@ -287,6 +324,7 @@ export async function clearInternalAdminSession() {
 }
 
 export async function getInternalAdminSession() {
+  const configuredAdmin = getConfiguredInternalAdmin();
   const jar = await cookies();
   const raw = jar.get(INTERNAL_ADMIN_COOKIE)?.value;
   const payload = readSignedCookie<AdminSession>(raw);
@@ -297,6 +335,15 @@ export async function getInternalAdminSession() {
   if (new Date(payload.expiresAt).getTime() < Date.now()) {
     jar.delete(INTERNAL_ADMIN_COOKIE);
     return null;
+  }
+
+  if (payload.username !== configuredAdmin.username) {
+    jar.delete(INTERNAL_ADMIN_COOKIE);
+    return null;
+  }
+
+  if (payload.id === configuredAdmin.user.id) {
+    return configuredAdmin.user;
   }
 
   try {
@@ -319,8 +366,7 @@ export async function getInternalAdminSession() {
     return user;
   } catch (error) {
     if (logPayloadUnavailable("getInternalAdminSession", error)) {
-      jar.delete(INTERNAL_ADMIN_COOKIE);
-      return null;
+      return configuredAdmin.user;
     }
     throw error;
   }
