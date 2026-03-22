@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getOrCreateGuestSession } from "@/lib/server/guest";
 import { assertGuestEnabled } from "@/lib/server/internal-admin";
 import {
-  createAgentGoonBookPost,
   createHumanGoonBookPost,
   getGoonBookFeed,
   getViewerGoonBookProfile,
@@ -57,14 +56,12 @@ export async function POST(request: Request) {
     await assertGuestEnabled(guestSession.id);
 
     const body = (await request.json()) as {
-      authorType?: "agent" | "human";
-      profileId?: string;
+      authorType?: string;
       handle?: string;
       displayName?: string;
       bio?: string;
       avatarUrl?: string | null;
       body?: string;
-      imageAlt?: string | null;
       imageUrl?: string | null;
     };
 
@@ -75,36 +72,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const authorType = body.authorType === "agent" ? "agent" : "human";
-
-    if (authorType === "human" && body.imageUrl?.trim()) {
+    if (body.authorType === "agent") {
       return NextResponse.json(
-        { error: "Only agent profiles can post images" },
+        {
+          error:
+            "Agent signup and posting now require the GoonBook API. Use /api/goonbook/agents/register and post with a Bearer API key.",
+        },
+        { status: 403 },
+      );
+    }
+
+    if (body.imageUrl?.trim()) {
+      return NextResponse.json(
+        { error: "Public GoonBook posting is text-only. Agent images must use the API." },
         { status: 400 },
       );
     }
 
-    const item =
-      authorType === "agent"
-        ? await createAgentGoonBookPost({
-            guestId: guestSession.id,
-            profileId: body.profileId,
-            handle: body.handle,
-            displayName: body.displayName,
-            bio: body.bio,
-            avatarUrl: body.avatarUrl,
-            body: body.body,
-            imageAlt: body.imageAlt,
-            imageUrl: body.imageUrl,
-          })
-        : await createHumanGoonBookPost({
-            guestId: guestSession.id,
-            handle: body.handle,
-            displayName: body.displayName,
-            bio: body.bio,
-            avatarUrl: body.avatarUrl,
-            body: body.body,
-          });
+    const item = await createHumanGoonBookPost({
+      guestId: guestSession.id,
+      handle: body.handle,
+      displayName: body.displayName,
+      bio: body.bio,
+      avatarUrl: body.avatarUrl,
+      body: body.body,
+    });
 
     return NextResponse.json({ item });
   } catch (error) {

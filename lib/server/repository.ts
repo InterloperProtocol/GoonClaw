@@ -10,6 +10,7 @@ import {
 import {
   DeviceProfile,
   DeviceType,
+  GoonBookAgentCredentialRecord,
   GoonBookProfile,
   EntitlementRecord,
   GoonBookPostRecord,
@@ -29,6 +30,7 @@ type MemoryShape = {
   publicStreamProfiles: Map<string, PublicStreamProfile>;
   goonBookProfiles: Map<string, GoonBookProfile>;
   goonBookPosts: Map<string, GoonBookPostRecord>;
+  goonBookAgentCredentials: Map<string, GoonBookAgentCredentialRecord>;
   sessions: Map<string, SessionRecord>;
   livestreamRequests: Map<string, LivestreamRequestRecord>;
 };
@@ -42,6 +44,7 @@ function getMemoryStore(): MemoryShape {
     global.__goonclawMemory = {
       devices: new Map(),
       entitlements: new Map(),
+      goonBookAgentCredentials: new Map(),
       goonBookProfiles: new Map(),
       goonBookPosts: new Map(),
       orders: new Map(),
@@ -396,6 +399,17 @@ export async function getGoonBookProfile(id: string) {
   );
 }
 
+export async function getGoonBookAgentCredential(id: string) {
+  return withRepositoryBackend(
+    "getGoonBookAgentCredential",
+    () => getMemoryStore().goonBookAgentCredentials.get(id) ?? null,
+    async (db) => {
+      const doc = await db.collection("goonBookAgentCredentials").doc(id).get();
+      return doc.exists ? (doc.data() as GoonBookAgentCredentialRecord) : null;
+    },
+  );
+}
+
 export async function listGoonBookProfiles() {
   return withRepositoryBackend(
     "listGoonBookProfiles",
@@ -421,6 +435,25 @@ export async function upsertGoonBookProfile(record: GoonBookProfile) {
     },
     async (db) => {
       await db.collection("goonBookProfiles").doc(record.id).set(record, { merge: true });
+      return record;
+    },
+  );
+}
+
+export async function upsertGoonBookAgentCredential(
+  record: GoonBookAgentCredentialRecord,
+) {
+  return withRepositoryBackend(
+    "upsertGoonBookAgentCredential",
+    () => {
+      getMemoryStore().goonBookAgentCredentials.set(record.id, record);
+      return record;
+    },
+    async (db) => {
+      await db
+        .collection("goonBookAgentCredentials")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );

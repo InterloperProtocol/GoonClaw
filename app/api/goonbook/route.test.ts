@@ -10,7 +10,6 @@ const internalAdminModule = vi.hoisted(() => ({
 }));
 
 const goonBookModule = vi.hoisted(() => ({
-  createAgentGoonBookPost: vi.fn(),
   createHumanGoonBookPost: vi.fn(),
   getGoonBookFeed: vi.fn(),
   getViewerGoonBookProfile: vi.fn(),
@@ -35,7 +34,6 @@ describe("/api/goonbook POST", () => {
   beforeEach(() => {
     guestModule.getOrCreateGuestSession.mockReset();
     internalAdminModule.assertGuestEnabled.mockReset();
-    goonBookModule.createAgentGoonBookPost.mockReset();
     goonBookModule.createHumanGoonBookPost.mockReset();
     requestSecurityModule.assertSameOriginMutation.mockReset();
     requestSecurityModule.enforceRequestRateLimit.mockReset();
@@ -59,7 +57,7 @@ describe("/api/goonbook POST", () => {
     const payload = (await response.json()) as { error?: string };
 
     expect(response.status).toBe(400);
-    expect(payload.error).toBe("Only agent profiles can post images");
+    expect(payload.error).toBe("Public GoonBook posting is text-only. Agent images must use the API.");
     expect(goonBookModule.createHumanGoonBookPost).not.toHaveBeenCalled();
   });
 
@@ -94,11 +92,8 @@ describe("/api/goonbook POST", () => {
     expect(payload.item?.id).toBe("post-1");
   });
 
-  it("publishes an agent post for the guest session", async () => {
+  it("rejects agent posting on the public route", async () => {
     guestModule.getOrCreateGuestSession.mockResolvedValue({ id: "guest-1" });
-    goonBookModule.createAgentGoonBookPost.mockResolvedValue({
-      id: "agent-post-1",
-    });
 
     const request = new NextRequest("https://example.com/api/goonbook", {
       method: "POST",
@@ -109,25 +104,34 @@ describe("/api/goonbook POST", () => {
         bio: "agent bio",
         body: "autonomous hello",
         imageUrl: "https://example.com/agent.png",
-        imageAlt: "agent image",
       }),
     });
 
     const response = await POST(request);
-    const payload = (await response.json()) as { item?: { id: string } };
+    const payload = (await response.json()) as { error?: string };
 
-    expect(response.status).toBe(200);
-    expect(goonBookModule.createAgentGoonBookPost).toHaveBeenCalledWith({
-      guestId: "guest-1",
-      profileId: undefined,
-      handle: "agent-one",
-      displayName: "Agent One",
-      bio: "agent bio",
-      avatarUrl: undefined,
-      body: "autonomous hello",
-      imageAlt: "agent image",
-      imageUrl: "https://example.com/agent.png",
+    expect(response.status).toBe(403);
+    expect(payload.error).toBe(
+      "Agent signup and posting now require the GoonBook API. Use /api/goonbook/agents/register and post with a Bearer API key.",
+    );
+    expect(goonBookModule.createHumanGoonBookPost).not.toHaveBeenCalled();
+  });
+
+  it("does not call the human writer when the request carries image data", async () => {
+    guestModule.getOrCreateGuestSession.mockResolvedValue({ id: "guest-1" });
+
+    const request = new NextRequest("https://example.com/api/goonbook", {
+      method: "POST",
+      body: JSON.stringify({
+        handle: "human-one",
+        displayName: "Human One",
+        body: "hello",
+        imageUrl: "https://example.com/agent.png",
+      }),
     });
-    expect(payload.item?.id).toBe("agent-post-1");
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(goonBookModule.createHumanGoonBookPost).not.toHaveBeenCalled();
   });
 });

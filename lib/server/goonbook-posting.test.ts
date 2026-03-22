@@ -11,12 +11,13 @@ vi.mock("@/lib/server/payload", () => ({
 }));
 
 import {
-  createAgentGoonBookPost,
+  authenticateGoonBookAgent,
+  createAuthenticatedAgentGoonBookPost,
   createGoonBookPost,
   createHumanGoonBookPost,
   getGoonBookFeed,
-  listViewerAgentGoonBookProfiles,
   listGoonBookProfiles,
+  registerGoonBookAgent,
 } from "@/lib/server/goonbook";
 
 describe("GoonBook posting", () => {
@@ -52,6 +53,8 @@ describe("GoonBook posting", () => {
       body: `Agent image post ${randomUUID()}`,
       imageUrl: "https://example.com/test-image.png",
       imageAlt: "Agent test image",
+      mediaCategory: "chart",
+      mediaRating: "safe",
     });
 
     expect(created.authorType).toBe("agent");
@@ -59,27 +62,68 @@ describe("GoonBook posting", () => {
     expect(created.imageUrl).toBe("https://example.com/test-image.png");
   });
 
-  it("lets guests sign up an agent profile and reuse it", async () => {
-    const guestId = `guest-${randomUUID()}`;
-    const created = await createAgentGoonBookPost({
-      guestId,
+  it("registers API agents and lets them publish crypto thesis posts", async () => {
+    const registration = await registerGoonBookAgent({
       handle: `agent-${randomUUID().slice(0, 8)}`,
       displayName: "Signed Up Agent",
-      bio: "Guest-owned agent profile.",
-      body: `Agent update ${randomUUID()}`,
+      bio: "API owned crypto KOL.",
+    });
+
+    const profile = await authenticateGoonBookAgent(registration.apiKey);
+    expect(profile.id).toBe(registration.profile.id);
+    expect(profile.authType).toBe("api_key");
+
+    const created = await createAuthenticatedAgentGoonBookPost({
+      apiKey: registration.apiKey,
+      tokenSymbol: "bonk",
+      stance: "bullish",
+      body: `Agent thesis ${randomUUID()}`,
       imageUrl: "https://example.com/agent-image.png",
-      imageAlt: "Agent post",
+      imageAlt: "Agent chart image",
+      mediaCategory: "chart",
+      mediaRating: "safe",
     });
 
     expect(created.authorType).toBe("agent");
     expect(created.isAutonomous).toBe(true);
     expect(created.imageUrl).toBe("https://example.com/agent-image.png");
-
-    const viewerAgents = await listViewerAgentGoonBookProfiles(guestId);
-    expect(viewerAgents).toHaveLength(1);
-    expect(viewerAgents[0]?.handle).toBe(created.handle);
+    expect(created.tokenSymbol).toBe("$BONK");
+    expect(created.stance).toBe("bullish");
 
     const profiles = await listGoonBookProfiles({ onlyAgents: true });
     expect(profiles.some((profile) => profile.id === created.profileId)).toBe(true);
+  });
+
+  it("blocks explicit or minor-coded agent image posts", async () => {
+    const registration = await registerGoonBookAgent({
+      handle: `agent-${randomUUID().slice(0, 8)}`,
+      displayName: "Policy Agent",
+    });
+
+    await expect(
+      createAuthenticatedAgentGoonBookPost({
+        apiKey: registration.apiKey,
+        body: "Anime schoolgirl pinup",
+        imageUrl: "https://example.com/anime.png",
+        imageAlt: "young-looking anime schoolgirl",
+        mediaCategory: "anime",
+        mediaRating: "safe",
+      }),
+    ).rejects.toThrow(
+      "GoonBook blocks any sexualized content involving minors or young-looking people",
+    );
+
+    await expect(
+      createAuthenticatedAgentGoonBookPost({
+        apiKey: registration.apiKey,
+        body: "hardcore drop",
+        imageUrl: "https://example.com/drop.png",
+        imageAlt: "hardcore explicit sex",
+        mediaCategory: "softcore",
+        mediaRating: "softcore",
+      }),
+    ).rejects.toThrow(
+      "GoonBook allows only safe images and softcore adult images. Hard pornography is not allowed",
+    );
   });
 });

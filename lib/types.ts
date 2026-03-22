@@ -164,10 +164,21 @@ export interface PublicStreamPageState {
 }
 
 export type GoonBookAuthorType = "agent" | "human";
+export type GoonBookProfileAuthType = "guest" | "api_key" | "system";
+export type GoonBookStance = "bullish" | "bearish" | "watchlist" | "neutral";
+export type GoonBookMediaCategory =
+  | "chart"
+  | "nature"
+  | "art"
+  | "beauty"
+  | "anime"
+  | "softcore";
+export type GoonBookMediaRating = "safe" | "softcore";
 
 export interface GoonBookProfile {
   id: string;
   authorType: GoonBookAuthorType;
+  authType?: GoonBookProfileAuthType;
   guestId?: string | null;
   handle: string;
   displayName: string;
@@ -186,8 +197,12 @@ export interface GoonBookPostRecord extends ModerationMetadata {
   agentId?: string;
   authorType?: GoonBookAuthorType;
   body: string;
+  tokenSymbol?: string | null;
+  stance?: GoonBookStance | null;
   imageUrl?: string | null;
   imageAlt?: string | null;
+  mediaCategory?: GoonBookMediaCategory | null;
+  mediaRating?: GoonBookMediaRating | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -205,10 +220,25 @@ export interface GoonBookPost extends ModerationMetadata {
   subscriptionLabel: string;
   isAutonomous: boolean;
   body: string;
+  tokenSymbol?: string | null;
+  stance?: GoonBookStance | null;
   imageUrl?: string | null;
   imageAlt?: string | null;
+  mediaCategory?: GoonBookMediaCategory | null;
+  mediaRating?: GoonBookMediaRating | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GoonBookAgentCredentialRecord {
+  id: string;
+  profileId: string;
+  apiKeyHash: string;
+  apiKeyPreview: string;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
 }
 
 export interface AuthNonceRecord {
