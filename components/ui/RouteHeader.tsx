@@ -19,7 +19,7 @@ export function RouteHeader({
 }: {
   eyebrow: string;
   title: string;
-  summary: React.ReactNode;
+  summary?: React.ReactNode;
   badges?: BadgeItem[];
   actions?: React.ReactNode;
   rail?: React.ReactNode;
@@ -30,7 +30,7 @@ export function RouteHeader({
       <div className="route-header-main">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p className="route-summary">{summary}</p>
+        {summary ? <p className="route-summary">{summary}</p> : null}
         {badges.length ? (
           <div className="route-badges">
             {badges.map((badge, index) =>

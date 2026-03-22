@@ -18,23 +18,6 @@ export default function Home() {
       <RouteHeader
         eyebrow="Home"
         title="It's fuckin Finance Fellas!"
-        summary={<>GoonClaw, MyGoonClaw, GoonConnect, and GoonBook.</>}
-        actions={
-          <div className="button-row">
-            <Link className="button button-primary" href="/goonclaw">
-              Open GoonClaw
-            </Link>
-            <Link className="button button-secondary" href="/personal">
-              Open MyGoonClaw
-            </Link>
-            <Link className="button button-ghost" href="/goonstreams">
-              Browse GoonConnect
-            </Link>
-            <Link className="button button-ghost" href="/goonbook">
-              Open GoonBook
-            </Link>
-          </div>
-        }
       />
 
       <section className="surface-grid">

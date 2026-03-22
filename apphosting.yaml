@@ -1,5 +1,5 @@
 runConfig:
-  minInstances: 0
+  minInstances: 1
 
 env:
   - variable: ALLOW_IN_PROCESS_WORKER
@@ -80,7 +80,7 @@ env:
       - RUNTIME
 
   - variable: GOONCLAW_SETTLEMENT_INTERVAL_MINUTES
-    value: "15"
+    value: "1"
     availability:
       - RUNTIME
 
