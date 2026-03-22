@@ -39,13 +39,56 @@ function getRequestFingerprint(request: Request, discriminator?: string) {
     .join(":");
 }
 
-export function assertSameOriginMutation(request: Request) {
+function normalizeOriginValue(rawOrigin: string) {
+  try {
+    const parsed = new URL(rawOrigin);
+    const isDefaultPort =
+      (parsed.protocol === "https:" && (!parsed.port || parsed.port === "443")) ||
+      (parsed.protocol === "http:" && (!parsed.port || parsed.port === "80"));
+
+    return `${parsed.protocol}//${parsed.hostname}${isDefaultPort ? "" : `:${parsed.port}`}`.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function getFirstForwardedValue(rawValue: string | null) {
+  return rawValue?.split(",")[0]?.trim() || null;
+}
+
+function getAllowedMutationOrigins(request: Request) {
   const requestUrl = new URL(request.url);
-  const expectedOrigin = requestUrl.origin;
+  const allowedOrigins = new Set<string>();
+  const directOrigin = normalizeOriginValue(requestUrl.origin);
+  if (directOrigin) {
+    allowedOrigins.add(directOrigin);
+  }
+
+  const forwardedHost = getFirstForwardedValue(request.headers.get("x-forwarded-host"));
+  const forwardedProto =
+    getFirstForwardedValue(request.headers.get("x-forwarded-proto")) ||
+    requestUrl.protocol.replace(/:$/, "");
+
+  if (forwardedHost && forwardedProto) {
+    const forwardedOrigin = normalizeOriginValue(
+      `${forwardedProto}://${forwardedHost}`,
+    );
+    if (forwardedOrigin) {
+      allowedOrigins.add(forwardedOrigin);
+    }
+  }
+
+  return allowedOrigins;
+}
+
+export function assertSameOriginMutation(request: Request) {
   const origin = request.headers.get("origin");
   const fetchSite = request.headers.get("sec-fetch-site");
 
-  if (origin && origin !== expectedOrigin) {
+  const allowedOrigins = getAllowedMutationOrigins(request);
+  const normalizedOrigin = origin ? normalizeOriginValue(origin) : null;
+
+  if (origin && (!normalizedOrigin || !allowedOrigins.has(normalizedOrigin))) {
     throw new Error("Cross-origin state changes are not allowed");
   }
 
