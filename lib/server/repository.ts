@@ -1,5 +1,9 @@
 import { cert, getApp, getApps, initializeApp } from "firebase-admin/app";
-import { Firestore, getFirestore } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  Firestore,
+  getFirestore,
+} from "firebase-admin/firestore";
 
 import { getServerEnv, isFirebaseConfigured, isProductionEnv } from "@/lib/env";
 import { encryptJson } from "@/lib/server/crypto";
@@ -835,11 +839,28 @@ export async function markSessionStopped(id: string, lastError?: string) {
     lastError,
     updatedAt: stoppedAt,
     stoppedAt,
-    runtimeOwnerId: undefined,
-    runtimeLeaseExpiresAt: undefined,
   };
+  delete next.runtimeOwnerId;
+  delete next.runtimeLeaseExpiresAt;
 
-  return upsertSession(next);
+  return withRepositoryBackend(
+    "markSessionStopped",
+    () => {
+      getMemoryStore().sessions.set(id, next);
+      return next;
+    },
+    async (db) => {
+      await db.collection("sessions").doc(id).set(
+        {
+          ...next,
+          runtimeOwnerId: FieldValue.delete(),
+          runtimeLeaseExpiresAt: FieldValue.delete(),
+        },
+        { merge: true },
+      );
+      return next;
+    },
+  );
 }
 
 export async function upsertLivestreamRequest(record: LivestreamRequestRecord) {
