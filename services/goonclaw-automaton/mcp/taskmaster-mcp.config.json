@@ -1,0 +1,11 @@
+{
+  "command": "npx",
+  "args": [
+    "-y",
+    "task-master-ai"
+  ],
+  "notes": [
+    "Task Master AI provides structured task and dependency planning for long-running Codex workflows.",
+    "This is configured as a local stdio MCP server."
+  ]
+}

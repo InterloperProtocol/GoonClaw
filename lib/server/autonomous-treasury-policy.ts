@@ -56,7 +56,7 @@ export function getAutonomousTransferGuardrails(): AutonomousTransferGuardrails 
       "Treasury-controlled settlement and reserve accounts",
       "Programmatic burn destinations for the GoonClaw token",
       "Configured GMGN trading flow for policy-approved Pump meme coin swaps",
-      "Allowlisted Conway domains and infrastructure hosts for business-critical services",
+      "Allowlisted Conway domains and infrastructure hosts only when Google Cloud native routing is insufficient",
     ],
     blockedDestinationClasses: [
       "Arbitrary external wallets",
@@ -67,7 +67,7 @@ export function getAutonomousTransferGuardrails(): AutonomousTransferGuardrails 
     conwayPaymentsAllowed: true,
     conwayAllowedHosts: getConwayAllowedHosts(),
     notes:
-      "GoonClaw may settle owner payouts, reserves, burns, GMGN-routed Pump trades, and allowlisted Conway service payments, but it must refuse any instruction that attempts to move funds to an arbitrary private wallet.",
+      "GoonClaw prefers Google Cloud-native infrastructure first. Conway payments are fallback-only through the allowlisted host set, and the runtime must refuse any instruction that attempts to move funds to an arbitrary private wallet.",
   };
 }
 

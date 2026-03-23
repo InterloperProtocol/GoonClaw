@@ -30,6 +30,15 @@ function formatTimestamp(value: string | null | undefined) {
   });
 }
 
+function formatNameList(names: string[], limit = 6) {
+  if (!names.length) {
+    return "Waiting";
+  }
+
+  const preview = names.slice(0, limit).join(" | ");
+  return names.length > limit ? `${preview} | +${names.length - limit} more` : preview;
+}
+
 function toneForPhase(
   phase: AutonomousAgentStatus["runtimePhase"],
 ): BadgeTone {
@@ -54,13 +63,17 @@ function toneForEvent(kind: AutonomousFeedEvent["kind"]): BadgeTone {
     case "heartbeat":
       return "success";
     case "control":
+    case "market":
     case "replication":
+    case "social":
     case "self_mod":
       return "accent";
     case "policy":
     case "trade":
       return "warning";
+    case "docs":
     case "revenue":
+    case "wallet":
       return "neutral";
     default:
       return "neutral";
@@ -71,10 +84,18 @@ function labelForEvent(kind: AutonomousFeedEvent["kind"]) {
   switch (kind) {
     case "heartbeat":
       return "update";
+    case "market":
+      return "market";
     case "policy":
       return "note";
     case "control":
       return "status";
+    case "social":
+      return "broadcast";
+    case "wallet":
+      return "wallet";
+    case "docs":
+      return "docs";
     case "replication":
     case "self_mod":
       return "system";
@@ -152,6 +173,10 @@ export function AutonomousAgentPanel() {
   }, [lastUpdatedAt]);
 
   const openPositions = status?.positions.filter((item) => item.status === "open") ?? [];
+  const topTape = status?.marketIntel.topTape.slice(0, 4) ?? [];
+  const configuredMcpNames = status?.tooling.configuredMcpServerNames ?? [];
+  const vendoredSkillNames = status?.tooling.vendoredSkillNames ?? [];
+  const codexSkillNames = status?.tooling.codexSkillNames ?? [];
 
   return (
     <section className="panel">
@@ -181,8 +206,41 @@ export function AutonomousAgentPanel() {
         <StatusBadge tone={status?.tooling.gmgnConfigured ? "accent" : "neutral"}>
           {status?.tooling.gmgnConfigured ? "GMGN set" : "GMGN off"}
         </StatusBadge>
+        <StatusBadge
+          tone={
+            status?.tooling.conwayCodexMcpConfigured
+              ? status.tooling.conwayApiKeyConfigured
+                ? "accent"
+                : "warning"
+              : "neutral"
+          }
+        >
+          {status?.tooling.conwayCodexMcpConfigured
+            ? status.tooling.conwayApiKeyConfigured
+              ? "Conway fallback"
+              : "Conway fallback cfg"
+            : "Conway off"}
+        </StatusBadge>
         <StatusBadge tone={status?.tooling.telegramBroadcastEnabled ? "success" : "neutral"}>
           {status?.tooling.telegramBroadcastEnabled ? "Telegram on" : "Telegram off"}
+        </StatusBadge>
+        <StatusBadge
+          tone={
+            status?.tooling.tavilyMcpConfigured
+              ? status.tooling.tavilyApiKeyConfigured
+                ? "accent"
+                : "warning"
+              : "neutral"
+          }
+        >
+          {status?.tooling.tavilyMcpConfigured
+            ? status.tooling.tavilyApiKeyConfigured
+              ? "Tavily ready"
+              : "Tavily cfg"
+            : "Tavily off"}
+        </StatusBadge>
+        <StatusBadge tone={status?.tooling.context7McpConfigured ? "accent" : "neutral"}>
+          {status?.tooling.context7McpConfigured ? "Context7 set" : "Context7 off"}
         </StatusBadge>
         <StatusBadge tone="neutral" mono>
           Last update {lastUpdatedLabel}
@@ -267,10 +325,30 @@ export function AutonomousAgentPanel() {
         </div>
         <div className="history-item">
           <div>
+            <span>Execution route</span>
+            <strong>
+              {status?.tooling.conwayCodexMcpConfigured
+                ? status.tooling.conwayApiKeyConfigured
+                  ? "Google Cloud primary / Conway fallback ready"
+                  : "Google Cloud primary / Conway fallback waiting for API key"
+                : "Google Cloud primary"}
+            </strong>
+          </div>
+          <div>
             <span>GMGN wallet</span>
             <strong>
               {status?.tooling.gmgnTradingWallet
                 ? `${status.tooling.gmgnTradingWallet.slice(0, 4)}...${status.tooling.gmgnTradingWallet.slice(-4)}`
+                : "Waiting"}
+            </strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Conway fallback hosts</span>
+            <strong>
+              {status
+                ? status.treasury.transferGuardrails.conwayAllowedHosts.join(" | ")
                 : "Waiting"}
             </strong>
           </div>
@@ -281,6 +359,30 @@ export function AutonomousAgentPanel() {
                 ? "Protected"
                 : "Open"}
             </strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Configured MCPs</span>
+            <strong>{formatNameList(configuredMcpNames, 8)}</strong>
+          </div>
+          <div>
+            <span>Vendored skills</span>
+            <strong>
+              {vendoredSkillNames.length
+                ? `${vendoredSkillNames.length} loaded`
+                : "No vendored skills"}
+            </strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Vendored skill pack</span>
+            <strong>{formatNameList(vendoredSkillNames)}</strong>
+          </div>
+          <div>
+            <span>Local Codex skills</span>
+            <strong>{formatNameList(codexSkillNames)}</strong>
           </div>
         </div>
       </div>
@@ -307,6 +409,61 @@ export function AutonomousAgentPanel() {
           </dd>
         </div>
       </div>
+
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Market Heartbeat</p>
+          <h2>Live tape and runtime candidate</h2>
+        </div>
+      </div>
+
+      <div className="history-list">
+        <div className="history-item">
+          <div>
+            <span>Heartbeat summary</span>
+            <strong>{status?.marketIntel.summary || "Waiting"}</strong>
+          </div>
+          <div>
+            <span>Next trade candidate</span>
+            <strong>
+              {status?.marketIntel.nextTradeCandidateSymbol
+                ? `$${status.marketIntel.nextTradeCandidateSymbol}`
+                : "No candidate"}
+            </strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Tracked wallets</span>
+            <strong>{status?.marketIntel.trackedWallets.length ?? 0}</strong>
+          </div>
+          <div>
+            <span>LLM docs cached</span>
+            <strong>{status?.marketIntel.docs.length ?? 0}</strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
+            <span>Trade cards</span>
+            <strong>{status?.marketIntel.tradeCards.length ?? 0}</strong>
+          </div>
+          <div>
+            <span>Last trade card post</span>
+            <strong>{formatTimestamp(status?.marketIntel.lastPostedAt)}</strong>
+          </div>
+        </div>
+      </div>
+
+      {topTape.length ? (
+        <div className="detail-list compact">
+          {topTape.map((item) => (
+            <div key={item.id} className="detail">
+              <dt>{item.label}</dt>
+              <dd>{item.detail}</dd>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="panel-header">
         <div>

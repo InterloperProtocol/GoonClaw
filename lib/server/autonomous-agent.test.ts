@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   applyAutonomousRevenueAllocation,
+  getAutonomousFeed,
+  queueAutonomousSelfModificationProposal,
+  queueAutonomousTradeDirective,
+  publishAutonomousGoonBookPost,
   recordAutonomousRevenue,
   performAutonomousControl,
   tickAutonomousHeartbeat,
@@ -52,20 +56,20 @@ describe("autonomous agent policy", () => {
     expect(result.allocated.reserveUsdc).toBe(0);
   });
 
-  it("degrades the runtime when reserve falls below the hard floor", () => {
+  it("degrades the runtime when reserve falls below the hard floor", async () => {
     const current = getAutonomousSnapshot();
     setAutonomousSnapshot({
       ...current,
       reserveSol: 0.05,
     });
 
-    const next = tickAutonomousHeartbeat("reserve breach test");
+    const next = await tickAutonomousHeartbeat("reserve breach test");
 
     expect(next.runtimePhase).toBe("degraded");
     expect(next.latestPolicyDecision).toContain("Reserve floor breach detected");
   });
 
-  it("force-liquidates open positions", () => {
+  it("force-liquidates open positions", async () => {
     const current = getAutonomousSnapshot();
     setAutonomousSnapshot({
       ...current,
@@ -85,18 +89,136 @@ describe("autonomous agent policy", () => {
       ],
     });
 
-    const next = performAutonomousControl("force_liquidate", "test liquidation");
+    const next = await performAutonomousControl(
+      "force_liquidate",
+      "test liquidation",
+      {
+        executor: {
+          async executeBuybackBurn() {
+            throw new Error("not used");
+          },
+          async executeTrade() {
+            throw new Error("not used");
+          },
+          async liquidateTrade() {
+            return {
+              exitUsdc: 11.5,
+              sellSignature: "sig-liquidation",
+              soldAmountRaw: "100",
+            };
+          },
+          async settleOwnerPayout() {
+            throw new Error("not used");
+          },
+          async settleReserveRebalance() {
+            throw new Error("not used");
+          },
+        },
+      },
+    );
 
-    expect(next.runtimePhase).toBe("liquidating");
+    expect(next.runtimePhase).toBe("sleeping");
     expect(next.positions[0]?.status).toBe("closed");
     expect(next.positions[0]?.exitUsdc).toBe(11.5);
   });
 
-  it("records self-mod approval through owner control", () => {
-    const next = performAutonomousControl("approve_self_mod");
+  it("records self-mod approval through owner control", async () => {
+    queueAutonomousSelfModificationProposal({
+      summary: "Auto-direct chartsync trades into a verified meme coin.",
+      title: "Session trade tuning",
+      tuningPatch: {
+        preferredSessionTradeMint: "pump-mint-1",
+        preferredSessionTradeSymbol: "PUMP1",
+      },
+    });
+    const next = await performAutonomousControl("approve_self_mod");
 
     expect(next.selfModification.pendingProposal).toBeNull();
+    expect(next.selfModification.currentTuning.preferredSessionTradeMint).toBe(
+      "pump-mint-1",
+    );
     expect(next.selfModification.lastOutcome).toContain("Owner approved");
+  });
+
+  it("queues and executes a treasury trade directive through the settlement loop", async () => {
+    recordAutonomousRevenue("creator_fee", 100, "creator fees");
+    queueAutonomousTradeDirective({
+      marketMint: "pump-mint-2",
+      rationale: "Test treasury trade",
+      requestedUsdc: 1,
+      symbol: "PUMP2",
+    });
+
+    const next = await tickAutonomousHeartbeat("trade execution test", {
+      executor: {
+        async executeBuybackBurn() {
+          return {
+            acquiredAmountRaw: "41000000",
+            burnSignature: "sig-burn",
+            buySignature: "sig-buyburn",
+          };
+        },
+        async executeTrade() {
+          return {
+            acquiredAmountRaw: "123000000",
+            buySignature: "sig-trade",
+          };
+        },
+        async liquidateTrade() {
+          throw new Error("not used");
+        },
+        async settleOwnerPayout() {
+          return {
+            destinationTokenAccount: "owner-ata",
+            signature: "sig-owner",
+          };
+        },
+        async settleReserveRebalance() {
+          return {
+            destinationTokenAccount: "treasury-ata",
+            signature: "sig-reserve",
+          };
+        },
+      },
+    });
+
+    expect(next.tradeDirectives[0]?.status).toBe("executed");
+    expect(next.positions.some((position) => position.marketMint === "pump-mint-2")).toBe(
+      true,
+    );
+    expect(next.revenueBuckets.tradingUsdc).toBe(9);
+  });
+
+  it("creates replica child runtimes from owner control", async () => {
+    const next = await performAutonomousControl("trigger_replication", "Mirror child");
+
+    expect(next.replication.enabled).toBe(true);
+    expect(next.replication.childCount).toBe(1);
+    expect(next.replication.children[0]?.label).toBe("Mirror child");
+  });
+
+  it("spawns an uncapped replica child during each active heartbeat", async () => {
+    const first = await tickAutonomousHeartbeat("replication heartbeat one");
+    const second = await tickAutonomousHeartbeat("replication heartbeat two");
+
+    expect(first.replication.childCount).toBe(1);
+    expect(second.replication.childCount).toBe(2);
+    expect(second.replication.children[1]?.label).toBe("Replica 2");
+  });
+
+  it("publishes first-party GoonBook notes through the runtime", async () => {
+    const result = await publishAutonomousGoonBookPost({
+      body: "Rotation stays risk-on while liquidity and wallet follow-through hold up.",
+      tokenSymbol: "$BONK",
+      stance: "bullish",
+    });
+
+    expect(result.post.agentId).toBe("goonclaw");
+    expect(result.post.tokenSymbol).toBe("$BONK");
+    expect(result.snapshot.latestPolicyDecision).toBe(
+      "Published a first-party GoonBook post.",
+    );
+    expect(getAutonomousFeed(5).some((event) => event.kind === "social")).toBe(true);
   });
 
   it("blocks arbitrary private-address transfers", () => {
@@ -120,7 +242,7 @@ describe("autonomous agent policy", () => {
   it("allows Conway service access only through the allowlisted host set", () => {
     expect(() =>
       assertAutonomousTreasuryInstructionAllowed({
-        destinationHost: "billing.conway.ai",
+        destinationHost: "billing.conway.tech",
         kind: "conway_infrastructure_payment",
       }),
     ).not.toThrow();
@@ -173,7 +295,7 @@ describe("autonomous agent policy", () => {
 
     expect(snapshot.revenueBuckets.sessionTradeUsdc).toBe(10);
     expect(snapshot.positions).toHaveLength(0);
-    expect(snapshot.latestPolicyDecision).toContain("queued");
+    expect(snapshot.latestPolicyDecision).toContain("directive");
   });
 
   it("calculates tracked portfolio value from liquid balance, trade buckets, and open positions", () => {

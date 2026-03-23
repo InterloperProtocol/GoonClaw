@@ -4,6 +4,7 @@ import { bootstrapGoonclawTelegramBot } from "@/lib/server/goonclaw-telegram";
 
 declare global {
   var __goonclawAutonomousRuntimeStarted: boolean | undefined;
+  var __goonclawAutonomousRuntimeTicking: boolean | undefined;
 }
 
 export function startAutonomousRuntimeLoop() {
@@ -38,16 +39,28 @@ export function startAutonomousRuntimeLoop() {
       console.warn("[goonclaw-automaton] telegram bootstrap failed", error);
     });
 
-  const bootSnapshot = tickAutonomousHeartbeat("server bootstrap");
-  console.log(
-    `[goonclaw-automaton] heartbeat ${bootSnapshot.heartbeatAt} phase=${bootSnapshot.runtimePhase} decision="${bootSnapshot.latestPolicyDecision}"`,
-  );
+  const runCycle = async (reason: string) => {
+    if (global.__goonclawAutonomousRuntimeTicking) {
+      console.warn(`[goonclaw-automaton] skipped overlapping cycle reason=${reason}`);
+      return;
+    }
 
+    global.__goonclawAutonomousRuntimeTicking = true;
+    try {
+      const snapshot = await tickAutonomousHeartbeat(reason);
+      console.log(
+        `[goonclaw-automaton] heartbeat ${snapshot.heartbeatAt} phase=${snapshot.runtimePhase} decision="${snapshot.latestPolicyDecision}"`,
+      );
+    } catch (error) {
+      console.warn(`[goonclaw-automaton] heartbeat failed reason=${reason}`, error);
+    } finally {
+      global.__goonclawAutonomousRuntimeTicking = false;
+    }
+  };
+
+  void runCycle("server bootstrap");
   setInterval(() => {
-    const snapshot = tickAutonomousHeartbeat("cloud run heartbeat");
-    console.log(
-      `[goonclaw-automaton] heartbeat ${snapshot.heartbeatAt} phase=${snapshot.runtimePhase} decision="${snapshot.latestPolicyDecision}"`,
-    );
+    void runCycle("cloud run heartbeat");
   }, intervalMs);
 
   return true;

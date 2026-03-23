@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { PublicKey } from "@solana/web3.js";
 
 import { getPublicEnv, getServerEnv } from "@/lib/env";
+import { fetchWalletAnalytics } from "@/lib/server/goonclaw-smart-wallets";
 import {
   dispatchSessionStart,
   dispatchSessionStop,
@@ -29,6 +30,8 @@ import { nowIso } from "@/lib/utils";
 
 const PAYMENT_WINDOW_MS = 15 * 60_000;
 const LIVESTREAM_MEMO_PREFIX = "PUMP";
+const MINIMUM_GUARANTEED_DISPLAY_MS = 120_000;
+const PREEMPT_COOLDOWN_MS = 120_000;
 
 function toLamports(sol: string) {
   return BigInt(Math.round(Number(sol) * 1_000_000_000));
@@ -211,6 +214,28 @@ async function shouldTreatRequestAsFinished(request: LivestreamRequestRecord) {
   return expiredByTime || sessionEnded;
 }
 
+function canPriorityPreempt(request: LivestreamRequestRecord) {
+  if (request.tier !== "standard") {
+    return false;
+  }
+
+  const displayStartedAtMs = request.displayStartedAt
+    ? new Date(request.displayStartedAt).getTime()
+    : request.activatedAt
+      ? new Date(request.activatedAt).getTime()
+      : 0;
+  if (!displayStartedAtMs) {
+    return false;
+  }
+
+  const guaranteedAt = displayStartedAtMs + MINIMUM_GUARANTEED_DISPLAY_MS;
+  const cooldownUntil = request.preemptCooldownUntil
+    ? new Date(request.preemptCooldownUntil).getTime()
+    : 0;
+
+  return Date.now() >= Math.max(guaranteedAt, cooldownUntil);
+}
+
 async function preemptActiveRequest(request: LivestreamRequestRecord) {
   if (request.sessionId) {
     await dispatchSessionStop(request.sessionId).catch(() => null);
@@ -237,7 +262,7 @@ export async function syncLivestreamQueue() {
     (request) => request.tier === "priority",
   );
 
-  if (active && priorityWaiting) {
+  if (active && priorityWaiting && canPriorityPreempt(active)) {
     await preemptActiveRequest(active);
     active = null;
     requests = await listLivestreamRequests();
@@ -255,6 +280,7 @@ export async function syncLivestreamQueue() {
     const next = getActivationQueue(requests)[0];
     if (next) {
       try {
+        const activatedAt = nowIso();
         const session = await dispatchSessionStart({
           wallet: PUBLIC_LIVESTREAM_OWNER_ID,
           contractAddress: next.contractAddress,
@@ -265,8 +291,13 @@ export async function syncLivestreamQueue() {
         active = await upsertLivestreamRequest({
           ...next,
           status: "active",
-          updatedAt: nowIso(),
-          activatedAt: nowIso(),
+          updatedAt: activatedAt,
+          activatedAt,
+          displayStartedAt: activatedAt,
+          preemptCooldownUntil:
+            next.tier === "priority"
+              ? new Date(Date.now() + PREEMPT_COOLDOWN_MS).toISOString()
+              : next.preemptCooldownUntil,
           expiresAt: new Date(
             Date.now() + Number(env.LIVESTREAM_SESSION_SECONDS) * 1000,
           ).toISOString(),
@@ -297,10 +328,14 @@ function serializeLivestreamRequest(request: LivestreamRequestRecord) {
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
     activatedAt: request.activatedAt,
+    displayStartedAt: request.displayStartedAt,
+    preemptCooldownUntil: request.preemptCooldownUntil,
     expiresAt: request.expiresAt,
     completedAt: request.completedAt,
     payerWallet: request.payerWallet,
     sessionId: request.sessionId,
+    walletMemo: request.walletMemo,
+    walletSummary: request.walletSummary,
     error: request.error,
   };
 }
@@ -326,6 +361,28 @@ export async function getLivestreamState(guestId?: string | null) {
 
     return true;
   });
+  const priorityWaiting = queue.find((request) => request.tier === "priority") || null;
+  const guaranteedAt =
+    current?.displayStartedAt || current?.activatedAt
+      ? new Date(
+          new Date(current.displayStartedAt || current.activatedAt || current.createdAt).getTime() +
+            MINIMUM_GUARANTEED_DISPLAY_MS,
+        ).toISOString()
+      : null;
+  const preemptEligibleAt =
+    current && priorityWaiting
+      ? (() => {
+          const timestamps = [guaranteedAt, current.preemptCooldownUntil || null]
+            .filter((value): value is string => Boolean(value))
+            .map((value) => new Date(value).getTime());
+
+          if (!timestamps.length) {
+            return null;
+          }
+
+          return new Date(Math.max(...timestamps)).toISOString();
+        })()
+      : null;
 
   return {
     current: current ? serializeLivestreamRequest(current) : null,
@@ -338,6 +395,14 @@ export async function getLivestreamState(guestId?: string | null) {
     requesterCooldownSeconds: Number(env.LIVESTREAM_REQUESTER_COOLDOWN_SECONDS),
     contractCooldownSeconds: Number(env.LIVESTREAM_CONTRACT_COOLDOWN_SECONDS),
     paymentWindowSeconds: Math.floor(PAYMENT_WINDOW_MS / 1000),
+    kernel: {
+      minimumGuaranteedDisplaySeconds: Math.floor(
+        MINIMUM_GUARANTEED_DISPLAY_MS / 1000,
+      ),
+      preemptCooldownSeconds: Math.floor(PREEMPT_COOLDOWN_MS / 1000),
+      preemptEligibleAt,
+      priorityWaiting: Boolean(priorityWaiting),
+    },
     embedUrl: publicEnv.NEXT_PUBLIC_LIVESTREAM_EMBED_URL,
     deviceAvailable: Boolean(env.PUBLIC_AUTOBLOW_DEVICE_TOKEN),
   };
@@ -416,11 +481,17 @@ export async function verifyLivestreamRequestPayment(
     throw new Error(verification.error || "Payment verification failed");
   }
 
+  const walletAnalytics = verification.payerWallet
+    ? await fetchWalletAnalytics(verification.payerWallet)
+    : null;
+
   await upsertLivestreamRequest({
     ...request,
     updatedAt: nowIso(),
     signature,
     payerWallet: verification.payerWallet,
+    walletMemo: walletAnalytics?.walletMemo || null,
+    walletSummary: walletAnalytics?.narrativeSummary || null,
   });
 
   await syncLivestreamQueue();

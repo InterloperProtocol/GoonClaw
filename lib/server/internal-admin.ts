@@ -3,7 +3,9 @@ import { createHmac } from "crypto";
 import { cookies } from "next/headers";
 
 import { getServerEnv } from "@/lib/env";
-import { getAutonomousStatus } from "@/lib/server/autonomous-agent";
+import {
+  getAutonomousRuntimeSummary,
+} from "@/lib/server/autonomous-agent";
 import { getPayloadClient } from "@/lib/server/payload";
 import {
   getSession,
@@ -571,22 +573,7 @@ function getProfileHandle(profileId?: string, agentId?: string) {
 }
 
 function buildRuntimeSummary(): AutonomousRuntimeSummary {
-  const status = getAutonomousStatus();
-  return {
-    heartbeatAt: status.heartbeatAt,
-    runtimePhase: status.runtimePhase,
-    latestPolicyDecision: status.latestPolicyDecision,
-    paused: status.control.paused,
-    pauseReason: status.control.pauseReason,
-    lastAction: status.control.lastAction,
-    lastActionAt: status.control.lastActionAt,
-    reserveHealthy: status.treasury.reserveHealthy,
-    reserveSol: status.treasury.reserveSol,
-    reserveFloorSol: status.treasury.reserveFloorSol,
-    pendingSelfModification: status.selfModification.pendingProposal || null,
-    replicationEnabled: status.replication.enabled,
-    replicationChildCount: status.replication.childCount,
-  };
+  return getAutonomousRuntimeSummary();
 }
 
 async function getPublicStreamProfileOrThrow(guestId: string) {

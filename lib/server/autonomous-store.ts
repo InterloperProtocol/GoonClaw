@@ -10,11 +10,14 @@ import path from "path";
 import {
   AutonomousControlState,
   AutonomousFeedEvent,
+  AutonomousMarketIntelStatus,
   AutonomousRevenueBuckets,
+  AutonomousReplicationStatus,
+  AutonomousSettlementRecord,
   AutonomousRuntimePhase,
   AutonomousSelfModificationStatus,
+  AutonomousTradeDirective,
   AutonomousTradePosition,
-  AutonomousReplicationStatus,
 } from "@/lib/types";
 import { nowIso } from "@/lib/utils";
 
@@ -28,8 +31,11 @@ type AutonomousAgentSnapshot = {
   usdcBalance: number;
   revenueBuckets: AutonomousRevenueBuckets;
   positions: AutonomousTradePosition[];
+  tradeDirectives: AutonomousTradeDirective[];
+  settlements: AutonomousSettlementRecord[];
   replication: AutonomousReplicationStatus;
   selfModification: AutonomousSelfModificationStatus;
+  marketIntel: AutonomousMarketIntelStatus;
 };
 
 type AutonomousStoreShape = {
@@ -75,19 +81,46 @@ function createInitialSnapshot(): AutonomousAgentSnapshot {
       totalProcessedUsdc: 0,
     },
     positions: [],
+    tradeDirectives: [],
+    settlements: [],
     replication: {
       enabled: true,
       childCount: 0,
       lastEventAt: null,
       lastOutcome: "Replication enabled under owner-audited policy.",
+      children: [],
     },
     selfModification: {
       enabled: true,
       lastEventAt: null,
       auditProtected: true,
+      currentTuning: {
+        preferredSessionTradeMint: null,
+        preferredSessionTradeSymbol: null,
+        preferredTreasuryTradeMint: null,
+        preferredTreasuryTradeSymbol: null,
+        replicationTemplateLabel: null,
+      },
       pendingProposal:
         "Optimize treasury settlement cadence without weakening reserve-floor protection.",
+      pendingProposalId: null,
+      proposals: [],
       lastOutcome: "Awaiting owner review for the next self-mod proposal.",
+    },
+    marketIntel: {
+      updatedAt: null,
+      heartbeatSource: "initial boot",
+      summary: "Market intelligence has not completed a heartbeat refresh yet.",
+      topTape: [],
+      tradeCards: [],
+      trackedWallets: [],
+      walletAnalytics: [],
+      docs: [],
+      nextTradeCandidateMint: null,
+      nextTradeCandidateSymbol: null,
+      lastPostedTradeCardKey: null,
+      lastPostedAt: null,
+      lastOutcome: "Waiting for the first market heartbeat.",
     },
   };
 }

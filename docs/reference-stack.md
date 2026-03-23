@@ -30,6 +30,43 @@ This repo includes or depends on the following external references requested for
   - Installed from `pump-fun/pump-fun-skills`
   - Purpose: tokenized-agent workflow reference inside Codex.
 
+## Installed Official Skill Pack
+
+- `~/.codex/skills/pdf`
+- `~/.codex/skills/docx`
+- `~/.codex/skills/pptx`
+- `~/.codex/skills/xlsx`
+- `~/.codex/skills/doc-coauthoring`
+- `~/.codex/skills/frontend-design`
+- `~/.codex/skills/canvas-design`
+- `~/.codex/skills/algorithmic-art`
+- `~/.codex/skills/theme-factory`
+- `~/.codex/skills/web-artifacts-builder`
+- `~/.codex/skills/brand-guidelines`
+- `~/.codex/skills/skill-creator`
+  - Installed from `anthropics/skills`
+  - Purpose: give local Codex first-class document, spreadsheet, presentation, design, and skill-authoring workflows.
+
+## Vendored GoonClaw Skill Pack
+
+- `services/goonclaw-automaton/vendor/anthropic-skills`
+  - Source: `https://github.com/anthropics/skills`
+  - Purpose: repo-local skill bundle for the sovereign GoonClaw runtime assets.
+
+## Configured MCP Stack
+
+- `~/.codex/config.toml`
+  - Active local Codex MCP config
+  - Includes: `tavily`, `context7`, `taskmaster`, `excel`, `helius_docs`, `playwright`, and the pre-existing `rube`
+
+- `services/goonclaw-automaton/mcp/goonclaw-codex.config.json`
+  - Consolidated repo-local MCP manifest for `conway`, `solana`, `tavily`, `context7`, `taskmaster`, `excel`, `helius_docs`, and `playwright`
+  - Purpose: launch Codex against the full GoonClaw runtime toolchain with one config file
+
+## Reference-Only Repos
+
+- The broader agent-framework, local-LLM, orchestration, and sandbox repo list is treated as research/reference material unless a specific repo is vendored or exposed through a real MCP config.
+
 ## npm Packages
 
 - `@pump-fun/pump-sdk`
@@ -42,25 +79,30 @@ This repo includes or depends on the following external references requested for
 
 ## Panels Added
 
-- Personal panel:
+- `GoonClaw` entity wall:
+  - chart
+  - stream embed
+  - public chart/session queue
+  - crypto news
+  - autonomous status
+
+- `MyGoonClaw` workspace:
   - chart
   - video or stream embed
   - device control
   - crypto news
-  - agent ops
+  - public stream settings
+  - helper chat
 
-- Livestream panel:
-  - stream embed
-  - chart
-  - payment queue and request controls
-  - crypto news
-  - agent ops
+- `GoonConnect` board:
+  - public room index
+  - room pages
+  - live-session discovery
 
 ## Agent Policy Captured In UI
 
 - subscription cNFTs are now claimed manually after checking wallet eligibility
-- `50%` of creator fees route to the cNFT pool by default
-- the remainder routes to token buybacks
-- the agent maintains a `1 SOL` reserve floor by default
+- the older app-level Agent Ops surface still shows `50%` creator fees to the cNFT pool and the remainder to buybacks, plus a `1 SOL` reserve default
+- the sovereign automaton runtime under `services/goonclaw-automaton` has its own canonical policy layer: `49%` owner payout, `41%` burn bucket, `10%` trading bucket, and a `0.069420 SOL` reserve floor
 - LaunchONomics decides whether a wallet qualifies for a subscription cNFT
-- the agent status panel now reflects the manual claim posture plus buyback policy
+- the autonomous status panel now reflects constitution hash, reserve posture, and runtime bucket/accounting state

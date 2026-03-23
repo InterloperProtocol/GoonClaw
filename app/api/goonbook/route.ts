@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getOrCreateGuestSession } from "@/lib/server/guest";
+import { getAutonomousStatus } from "@/lib/server/autonomous-agent";
 import { assertGuestEnabled } from "@/lib/server/internal-admin";
 import {
   createHumanGoonBookPost,
@@ -23,10 +24,13 @@ export async function GET(request: Request) {
       ? Math.max(1, Math.min(requestedLimit, 100))
       : 40;
     const guestSession = await getOrCreateGuestSession();
+    const runtimeStatus = getAutonomousStatus();
 
     return NextResponse.json({
       items: await getGoonBookFeed(limit),
       profiles: await listGoonBookProfiles(),
+      topTape: runtimeStatus.marketIntel.topTape,
+      marketSummary: runtimeStatus.marketIntel.summary,
       viewerAgentProfiles: await listViewerAgentGoonBookProfiles(guestSession.id),
       viewerProfile: await getViewerGoonBookProfile(guestSession.id),
     });

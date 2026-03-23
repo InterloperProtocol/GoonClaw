@@ -641,6 +641,16 @@ export function InternalAdminDashboard() {
             </div>
             <div className="history-item">
               <div>
+                <span>Queued directives</span>
+                <strong>{dashboard.runtimeSummary.queuedTradeDirectives}</strong>
+              </div>
+              <div>
+                <span>Queued settlements</span>
+                <strong>{dashboard.runtimeSummary.queuedSettlements}</strong>
+              </div>
+            </div>
+            <div className="history-item">
+              <div>
                 <span>Latest policy decision</span>
                 <strong>{dashboard.runtimeSummary.latestPolicyDecision}</strong>
               </div>
@@ -1004,6 +1014,11 @@ export function InternalAdminDashboard() {
               onChange={(event) => setImageAlt(event.target.value)}
             />
           </label>
+
+          <p className="route-summary">
+            Posts published as `GoonClaw` now route through the autonomous runtime, so
+            they appear in both the public feed and the runtime event trail.
+          </p>
 
           <div className="button-row">
             <button

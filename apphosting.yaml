@@ -100,7 +100,7 @@ env:
       - RUNTIME
 
   - variable: GOONCLAW_SKILLS_DIR
-    value: "services/goonclaw-automaton/vendor/sendaifun-skills-bundle/skills"
+    value: "services/goonclaw-automaton/vendor"
     availability:
       - RUNTIME
 
@@ -110,14 +110,12 @@ env:
       - RUNTIME
 
   - variable: GOONCLAW_CONWAY_ALLOWED_HOSTS
-    value: "conway.ai,*.conway.ai"
+    value: "conway.tech,*.conway.tech,conway.ai,*.conway.ai"
     availability:
       - RUNTIME
 
   - variable: PUBLIC_AUTOBLOW_DEVICE_TOKEN
-    value: "71nt0tdpv35q"
-    availability:
-      - RUNTIME
+    secret: goonclaw-public-autoblow-device-token
 
   - variable: PUBLIC_AUTOBLOW_DEVICE_LABEL
     value: "GoonClaw Autoblow"

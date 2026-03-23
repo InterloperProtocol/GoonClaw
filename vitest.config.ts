@@ -14,6 +14,9 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/.next/**",
+      "**/.tmp-*/**",
+      "**/.tmp*/**",
+      "**/.tmp-integrations/**",
       "**/services/goonclaw-automaton/vendor/**",
       "**/vendor_automaton_probe/**",
       "**/vendor_sendaifun_skills_probe/**",

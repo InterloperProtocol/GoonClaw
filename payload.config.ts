@@ -25,6 +25,16 @@ function resolvePayloadDatabaseUrl() {
 }
 
 const payloadDatabaseUrl = resolvePayloadDatabaseUrl();
+const payloadSecret =
+  process.env.PAYLOAD_SECRET ||
+  process.env.APP_SESSION_SECRET ||
+  (process.env.NODE_ENV === "production" ? "" : "goonclaw-dev-payload-secret");
+
+if (!payloadSecret) {
+  throw new Error(
+    "PAYLOAD_SECRET or APP_SESSION_SECRET must be configured in production",
+  );
+}
 
 export default buildConfig({
   admin: {
@@ -134,5 +144,5 @@ export default buildConfig({
       url: payloadDatabaseUrl,
     },
   }),
-  secret: process.env.PAYLOAD_SECRET || process.env.APP_SESSION_SECRET || "goonclaw-dev-payload-secret",
+  secret: payloadSecret,
 });

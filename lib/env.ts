@@ -36,6 +36,9 @@ const rawServerEnvSchema = z.object({
   GOONCLAW_SKILLS_DIR: z.string().optional(),
   GOONCLAW_AGENT_CONSTITUTION_PATH: z.string().optional(),
   GOONCLAW_CONWAY_ALLOWED_HOSTS: z.string().optional(),
+  CONWAY_API_KEY: z.string().optional(),
+  TAVILY_API_KEY: z.string().optional(),
+  CONTEXT7_API_KEY: z.string().optional(),
   GOONCLAW_BURN_AMOUNT_RAW: z.string().optional(),
   GOONCLAW_TOKEN_DECIMALS: z.string().optional(),
   BAGSTROKE_TOKEN_MINT: z.string().optional(),
@@ -111,6 +114,9 @@ const resolvedServerEnvSchema = z.object({
   GOONCLAW_SKILLS_DIR: z.string().min(1),
   GOONCLAW_AGENT_CONSTITUTION_PATH: z.string().min(1),
   GOONCLAW_CONWAY_ALLOWED_HOSTS: z.string().min(1),
+  CONWAY_API_KEY: z.string(),
+  TAVILY_API_KEY: z.string(),
+  CONTEXT7_API_KEY: z.string(),
   BAGSTROKE_BURN_AMOUNT_RAW: z.string().min(1),
   BAGSTROKE_TOKEN_DECIMALS: z.string().min(1),
   LAUNCHONOMICS_TOKEN_MINT: z.string(),
@@ -299,7 +305,7 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
     PAYLOAD_SECRET: resolveValue(
       raw.PAYLOAD_SECRET?.trim() || raw.APP_SESSION_SECRET?.trim(),
       "goonclaw-dev-payload-secret",
-      false,
+      isProduction,
       "PAYLOAD_SECRET",
       16,
     ),
@@ -350,12 +356,16 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
       raw.GOONCLAW_PUBLIC_TRACE_MODE?.trim() || "maximum-available",
     GOONCLAW_SKILLS_DIR:
       raw.GOONCLAW_SKILLS_DIR?.trim() ||
-      "services/goonclaw-automaton/vendor/sendaifun-skills-bundle/skills",
+      "services/goonclaw-automaton/vendor",
     GOONCLAW_AGENT_CONSTITUTION_PATH:
       raw.GOONCLAW_AGENT_CONSTITUTION_PATH?.trim() ||
       "services/goonclaw-automaton/constitution.md",
     GOONCLAW_CONWAY_ALLOWED_HOSTS:
-      raw.GOONCLAW_CONWAY_ALLOWED_HOSTS?.trim() || "conway.ai,*.conway.ai",
+      raw.GOONCLAW_CONWAY_ALLOWED_HOSTS?.trim() ||
+      "conway.tech,*.conway.tech,conway.ai,*.conway.ai",
+    CONWAY_API_KEY: raw.CONWAY_API_KEY?.trim() || "",
+    TAVILY_API_KEY: raw.TAVILY_API_KEY?.trim() || "",
+    CONTEXT7_API_KEY: raw.CONTEXT7_API_KEY?.trim() || "",
     BAGSTROKE_BURN_AMOUNT_RAW:
       raw.GOONCLAW_BURN_AMOUNT_RAW?.trim() ||
       raw.BAGSTROKE_BURN_AMOUNT_RAW?.trim() ||

@@ -8,6 +8,7 @@ import {
   GoonBookPostRecord,
   GoonBookProfile,
   GoonBookStance,
+  MarketTradeCard,
 } from "@/lib/types";
 import { nowIso, sha256Hex } from "@/lib/utils";
 import {
@@ -252,6 +253,42 @@ function normalizeMediaRating(
   return trimmed;
 }
 
+function normalizeTradeCard(value?: MarketTradeCard | null) {
+  if (!value) {
+    return null;
+  }
+
+  const symbol = normalizeTokenSymbol(value.symbol)?.replace(/^\$/, "") || "";
+  if (!symbol) {
+    throw new Error("Trade cards need a valid token symbol");
+  }
+
+  const stance = normalizeStance(value.stance) || "watchlist";
+  const mint = value.mint.trim();
+  if (!mint) {
+    throw new Error("Trade cards need a mint address");
+  }
+
+  return {
+    ...value,
+    headline: value.headline.trim(),
+    id: value.id.trim() || randomUUID(),
+    imageUrl: normalizeImageUrl(value.imageUrl),
+    mint,
+    name: value.name.trim() || symbol,
+    pairUrl: value.pairUrl?.trim() || null,
+    signalScore: Number.isFinite(value.signalScore) ? value.signalScore : 0,
+    socialHandle: value.socialHandle?.trim().replace(/^@/, "") || null,
+    socialUrl: value.socialUrl?.trim() || null,
+    sourceLabel: value.sourceLabel.trim() || "GoonClaw tape",
+    sourceUrl: value.sourceUrl?.trim() || null,
+    stance,
+    summary: value.summary.trim(),
+    symbol,
+    walletCount: value.walletCount ?? 0,
+  } satisfies MarketTradeCard;
+}
+
 function assertAllowedAgentImagePolicy(input: {
   body: string;
   imageAlt?: string | null;
@@ -364,6 +401,7 @@ async function decoratePost(record: GoonBookPostRecord): Promise<GoonBookPost> {
     mediaCategory: record.mediaCategory || null,
     mediaRating: record.mediaRating || null,
     stance: record.stance || null,
+    tradeCard: record.tradeCard || null,
     tokenSymbol: record.tokenSymbol || null,
   };
 }
@@ -378,6 +416,7 @@ async function createPostForProfile(
     imageUrl?: string | null;
     mediaCategory?: string | null;
     mediaRating?: string | null;
+    tradeCard?: MarketTradeCard | null;
   },
 ) {
   const body = input.body.trim();
@@ -395,6 +434,7 @@ async function createPostForProfile(
   const imageAlt = normalizeImageAlt(input.imageAlt);
   const mediaCategory = normalizeMediaCategory(input.mediaCategory);
   const mediaRating = normalizeMediaRating(input.mediaRating, mediaCategory);
+  const tradeCard = normalizeTradeCard(input.tradeCard);
   if (!profile.isAutonomous && imageUrl) {
     throw new Error("Only agent profiles can post images");
   }
@@ -428,6 +468,7 @@ async function createPostForProfile(
     mediaCategory,
     mediaRating,
     stance,
+    tradeCard,
     tokenSymbol,
     updatedAt: timestamp,
   };
@@ -449,7 +490,9 @@ async function ensureAgentProfile(input: {
 }) {
   const existingProfileId = input.profileId?.trim();
   if (existingProfileId) {
-    const existing = await getStoredGoonBookProfile(existingProfileId);
+    const existing =
+      GOONBOOK_PROFILES[existingProfileId] ||
+      (await getStoredGoonBookProfile(existingProfileId));
     if (existing) {
       if (!existing.isAutonomous) {
         throw new Error("Selected GoonBook profile is not an agent");
@@ -558,6 +601,7 @@ export async function createGoonBookPost(input: {
   imageUrl?: string | null;
   mediaCategory?: string | null;
   mediaRating?: string | null;
+  tradeCard?: MarketTradeCard | null;
 }) {
   const profile = await ensureAgentProfile({
     guestId: input.guestId,
@@ -590,6 +634,7 @@ export async function createAgentGoonBookPost(input: {
   imageUrl?: string | null;
   mediaCategory?: string | null;
   mediaRating?: string | null;
+  tradeCard?: MarketTradeCard | null;
 }) {
   return createGoonBookPost({
     guestId: input.guestId,
@@ -608,6 +653,7 @@ export async function createAgentGoonBookPost(input: {
     imageUrl: input.imageUrl,
     mediaCategory: input.mediaCategory,
     mediaRating: input.mediaRating,
+    tradeCard: input.tradeCard,
   });
 }
 
@@ -731,6 +777,7 @@ export async function createAuthenticatedAgentGoonBookPost(input: {
   imageUrl?: string | null;
   mediaCategory?: string | null;
   mediaRating?: string | null;
+  tradeCard?: MarketTradeCard | null;
 }) {
   const profile = await authenticateGoonBookAgent(input.apiKey);
 
@@ -742,6 +789,7 @@ export async function createAuthenticatedAgentGoonBookPost(input: {
     imageUrl: input.imageUrl,
     mediaCategory: input.mediaCategory,
     mediaRating: input.mediaRating,
+    tradeCard: input.tradeCard,
   });
 }
 

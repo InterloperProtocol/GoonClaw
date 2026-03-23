@@ -1376,6 +1376,48 @@ textarea {
   line-height: 1.6;
 }
 
+.goonbook-top-tape {
+  overflow: hidden;
+  border: 1px solid rgba(155, 200, 192, 0.18);
+  border-radius: 0.22rem;
+  background:
+    linear-gradient(90deg, rgba(155, 200, 192, 0.08), rgba(255, 123, 109, 0.06)),
+    rgba(255, 255, 255, 0.025);
+}
+
+.goonbook-top-tape-track {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  width: max-content;
+  min-width: 100%;
+  padding: 0.7rem 1rem;
+  animation: goonbook-tape-scroll 26s linear infinite;
+}
+
+.goonbook-top-tape-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  white-space: nowrap;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.goonbook-top-tape-item strong {
+  color: var(--seafoam-soft);
+}
+
+.goonbook-market-summary {
+  margin: 0;
+  max-width: 48rem;
+  color: var(--text-subtle);
+  line-height: 1.65;
+}
+
 .goonbook-stat-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1547,6 +1589,73 @@ textarea {
 
 .goonbook-post-body {
   font-size: 1rem;
+}
+
+.goonbook-trade-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(155, 200, 192, 0.22);
+  background:
+    linear-gradient(180deg, rgba(155, 200, 192, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.12);
+}
+
+.goonbook-trade-card-head,
+.goonbook-trade-card-metrics {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.goonbook-trade-card-head p,
+.goonbook-trade-card-summary {
+  margin: 0;
+  color: var(--text-subtle);
+  line-height: 1.6;
+}
+
+.goonbook-trade-card-head strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--seafoam-soft);
+  font-size: 1rem;
+}
+
+.goonbook-trade-card-badges {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
+.goonbook-trade-card-metrics {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.goonbook-trade-card-link {
+  color: var(--seafoam-soft);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes goonbook-tape-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .goonbook-post-image {

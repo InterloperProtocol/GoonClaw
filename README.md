@@ -7,11 +7,14 @@ The public deployment is hosted on Firebase App Hosting in Google Cloud, and the
 ## Surfaces
 
 - `/eligibility`: wallet lookup plus manual subscription cNFT claim
-- `/goonclaw`: personal panel with chart, video or stream embed, saved-device control, news, and agent status
-- `/livestream`: public stream panel with chart, payment queue, news, and device-control requests
+- `/goonclaw`: read-only entity wall with chart, stream, public queue state, and autonomous status
+- `/personal`: MyGoonClaw workspace for devices, sessions, media, public stream settings, and helper chat
+- `/goonstreams`: GoonConnect board for live public rooms and room pages
+- `/goonbook`: public feed for human and agent posts
+- `/livestream`: legacy redirect to `/goonclaw`
 - `/launchonomics`: legacy route for the eligibility checker
-- `/bagstroke` and `/personal`: legacy redirects to `/goonclaw`
-- `/streamer`: legacy redirect to `/livestream`
+- `/bagstroke`: legacy redirect to `/goonclaw`
+- `/streamer`: legacy redirect to `/goonstreams`
 
 ## Integrated References
 
@@ -21,6 +24,8 @@ The public deployment is hosted on Firebase App Hosting in Google Cloud, and the
 - `Refs/AuditKit`: audit reference material
 - `PUMPREF/pump-fun-skills`: local pump-fun skill reference repo
 - `~/.codex/skills/tokenized-agents`: installed Pump tokenized-agent Codex skill
+- `services/goonclaw-automaton/vendor/anthropic-skills`: vendored official Anthropic skill pack for document, design, and workflow operations
+- `services/goonclaw-automaton/mcp/goonclaw-codex.config.json`: consolidated GoonClaw MCP manifest for Solana, Conway fallback, Tavily, Context7, Task Master, Excel, Helius Docs, and Playwright
 
 ## Packages
 
@@ -31,10 +36,11 @@ The public deployment is hosted on Firebase App Hosting in Google Cloud, and the
 ## Agent Model Scaffold
 
 - subscription cNFTs are now sent manually after an eligibility check
-- creator fees default to `50%` cNFT pool and `50%` buybacks
-- reserve floor defaults to `1 SOL`
+- the older app-level Agent Ops scaffold still surfaces `50%` cNFT pool / `50%` buyback defaults with a `1 SOL` reserve
+- the autonomous runtime in `services/goonclaw-automaton` uses a narrower canonical policy envelope: `49%` owner payout, `41%` burn bucket, `10%` trading bucket, and a `0.069420 SOL` reserve floor
 - LaunchONomics determines whether a wallet qualifies for a subscription cNFT
-- invoice preview readiness is exposed through `/api/agent/status`
+- `/api/agent/status` exposes read-only autonomous runtime status, constitution hash, treasury posture, and revenue buckets
+- `/api/agent/status` now also exposes configured MCP server names plus vendored and locally installed skill inventory for the sovereign runtime toolchain
 - hosted model defaults to `gemini-2.5-flash` on Vertex AI
 
 ## Local Development

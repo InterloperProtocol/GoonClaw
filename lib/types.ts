@@ -126,9 +126,13 @@ export interface LivestreamRequestRecord {
   signature?: string;
   payerWallet?: string;
   activatedAt?: string;
+  displayStartedAt?: string;
+  preemptCooldownUntil?: string;
   expiresAt?: string;
   completedAt?: string;
   sessionId?: string;
+  walletMemo?: string | null;
+  walletSummary?: string | null;
   error?: string;
 }
 
@@ -175,6 +179,28 @@ export type GoonBookMediaCategory =
   | "softcore";
 export type GoonBookMediaRating = "safe" | "softcore";
 
+export interface MarketTradeCard {
+  id: string;
+  mint: string;
+  symbol: string;
+  name: string;
+  stance: GoonBookStance;
+  signalScore: number;
+  marketCapUsd: number;
+  liquidityUsd: number;
+  volume24hUsd: number;
+  priceChange24hPct: number;
+  headline: string;
+  summary: string;
+  sourceLabel: string;
+  sourceUrl?: string | null;
+  pairUrl?: string | null;
+  socialHandle?: string | null;
+  socialUrl?: string | null;
+  imageUrl?: string | null;
+  walletCount?: number;
+}
+
 export interface GoonBookProfile {
   id: string;
   authorType: GoonBookAuthorType;
@@ -203,6 +229,7 @@ export interface GoonBookPostRecord extends ModerationMetadata {
   imageAlt?: string | null;
   mediaCategory?: GoonBookMediaCategory | null;
   mediaRating?: GoonBookMediaRating | null;
+  tradeCard?: MarketTradeCard | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -226,6 +253,7 @@ export interface GoonBookPost extends ModerationMetadata {
   imageAlt?: string | null;
   mediaCategory?: GoonBookMediaCategory | null;
   mediaRating?: GoonBookMediaRating | null;
+  tradeCard?: MarketTradeCard | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -381,7 +409,11 @@ export type AutonomousFeedEventKind =
   | "burn"
   | "control"
   | "self_mod"
-  | "replication";
+  | "replication"
+  | "market"
+  | "wallet"
+  | "social"
+  | "docs";
 
 export type AutonomousControlAction =
   | "wake"
@@ -393,6 +425,28 @@ export type AutonomousControlAction =
   | "reject_self_mod"
   | "trigger_replication"
   | "halt_replication";
+
+export type AutonomousSettlementKind =
+  | "owner_payout"
+  | "buyback_burn"
+  | "reserve_rebalance"
+  | "treasury_trade"
+  | "session_trade"
+  | "position_liquidation";
+
+export type AutonomousSettlementStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped";
+
+export type AutonomousDirectiveBucket = "tradingUsdc" | "sessionTradeUsdc";
+
+export type AutonomousTradeDirectiveStatus =
+  | "queued"
+  | "executed"
+  | "cancelled";
 
 export interface AutonomousRevenuePolicy {
   revenueClass: AutonomousRevenueClass;
@@ -424,8 +478,81 @@ export interface AutonomousTradePosition {
   currentUsdc: number;
   rationale: string;
   openedAt: string;
+  tokenAmountRaw?: string;
+  entrySignature?: string | null;
+  settlementId?: string | null;
   closedAt?: string;
   exitUsdc?: number;
+  exitSignature?: string | null;
+}
+
+export interface AutonomousTradeDirective {
+  id: string;
+  bucket: AutonomousDirectiveBucket;
+  revenueClass: AutonomousRevenueClass;
+  marketMint: string;
+  symbol: string;
+  requestedUsdc: number;
+  rationale: string;
+  isPumpCoin: boolean;
+  queuedAt: string;
+  queuedBy: "owner" | "runtime";
+  status: AutonomousTradeDirectiveStatus;
+  positionId?: string | null;
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousSettlementRecord {
+  id: string;
+  kind: AutonomousSettlementKind;
+  status: AutonomousSettlementStatus;
+  amountUsdc: number;
+  bucket?: AutonomousDirectiveBucket | "ownerUsdc" | "burnUsdc" | "reserveUsdc" | null;
+  revenueClass?: AutonomousRevenueClass | null;
+  requestedAt: string;
+  updatedAt: string;
+  attempts: number;
+  destinationAddress?: string | null;
+  marketMint?: string | null;
+  symbol?: string | null;
+  directiveId?: string | null;
+  positionId?: string | null;
+  txSignatures: string[];
+  lastError?: string | null;
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousReplicaChild {
+  id: string;
+  label: string;
+  createdAt: string;
+  heartbeatAt: string;
+  runtimePhase: AutonomousRuntimePhase;
+  constitutionPath: string;
+  constitutionHash: string;
+  parentAgentId: string;
+  scope: string;
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousRuntimeTuning {
+  preferredSessionTradeMint?: string | null;
+  preferredSessionTradeSymbol?: string | null;
+  preferredTreasuryTradeMint?: string | null;
+  preferredTreasuryTradeSymbol?: string | null;
+  replicationTemplateLabel?: string | null;
+}
+
+export interface AutonomousSelfModificationProposal {
+  id: string;
+  title: string;
+  summary: string;
+  createdAt: string;
+  proposedBy: "owner" | "runtime";
+  tuningPatch: AutonomousRuntimeTuning;
+  status: "pending" | "approved" | "applied" | "rejected";
+  contentHash: string;
+  reviewNote?: string | null;
 }
 
 export interface AutonomousFeedEvent {
@@ -458,6 +585,13 @@ export interface AutonomousToolingStatus {
   vertexOnly: boolean;
   solanaAgentKitConfigured: boolean;
   solanaMcpConfigured: boolean;
+  conwayCodexMcpConfigured: boolean;
+  conwayApiKeyConfigured: boolean;
+  tavilyMcpConfigured: boolean;
+  tavilyApiKeyConfigured: boolean;
+  context7McpConfigured: boolean;
+  taskMasterMcpConfigured: boolean;
+  excelMcpConfigured: boolean;
   dexterX402Installed: boolean;
   dexterX402Version: string | null;
   gmgnConfigured: boolean;
@@ -470,6 +604,9 @@ export interface AutonomousToolingStatus {
   loadedActionCount: number;
   availableActions: string[];
   blockedActionNames: string[];
+  configuredMcpServerNames: string[];
+  vendoredSkillNames: string[];
+  codexSkillNames: string[];
 }
 
 export interface AutonomousControlState {
@@ -496,13 +633,85 @@ export interface AutonomousReplicationStatus {
   childCount: number;
   lastEventAt: string | null;
   lastOutcome?: string | null;
+  children: AutonomousReplicaChild[];
 }
 
 export interface AutonomousSelfModificationStatus {
   enabled: boolean;
   lastEventAt: string | null;
   auditProtected: boolean;
+  currentTuning: AutonomousRuntimeTuning;
   pendingProposal?: string | null;
+  pendingProposalId?: string | null;
+  proposals: AutonomousSelfModificationProposal[];
+  lastOutcome?: string | null;
+}
+
+export interface AutonomousTapeItem {
+  id: string;
+  source: "market" | "wallet" | "x" | "docs" | "goonbook";
+  label: string;
+  detail: string;
+  href?: string | null;
+}
+
+export interface AutonomousWalletAnalytics {
+  wallet: string;
+  label: string;
+  source: "smart_money" | "kol" | "payer";
+  styleClassification: string;
+  walletPersonality?: string | null;
+  walletSecondaryPersonality?: string | null;
+  walletModifiers: string[];
+  memorableMoments: string[];
+  narrativeSummary: string;
+  walletMemo: string;
+  pumpTokensTraded?: number;
+  solSpent?: number;
+  solReceived?: number;
+  estimatedPnlSol?: number;
+  winRatePct?: number;
+  pnl7d?: number;
+  pnl30d?: number;
+}
+
+export interface AutonomousSmartWallet {
+  wallet: string;
+  label: string;
+  source: "smart_money" | "kol";
+  score: number;
+  winRatePct: number;
+  pnl7d: number;
+  pnl30d: number;
+  holdings: string[];
+  notableMints: string[];
+  socialHandle?: string | null;
+  socialUrl?: string | null;
+  walletMemo: string;
+  narrativeSummary: string;
+}
+
+export interface AutonomousDomainDoc {
+  domain: string;
+  source: "llms.txt" | "llms-full.txt" | "install.md";
+  summary: string;
+  fetchedAt: string;
+  url: string;
+}
+
+export interface AutonomousMarketIntelStatus {
+  updatedAt: string | null;
+  heartbeatSource: string;
+  summary: string;
+  topTape: AutonomousTapeItem[];
+  tradeCards: MarketTradeCard[];
+  trackedWallets: AutonomousSmartWallet[];
+  walletAnalytics: AutonomousWalletAnalytics[];
+  docs: AutonomousDomainDoc[];
+  nextTradeCandidateMint?: string | null;
+  nextTradeCandidateSymbol?: string | null;
+  lastPostedTradeCardKey?: string | null;
+  lastPostedAt?: string | null;
   lastOutcome?: string | null;
 }
 
@@ -524,9 +733,12 @@ export interface AutonomousAgentStatus {
   revenuePolicies: AutonomousRevenuePolicy[];
   revenueBuckets: AutonomousRevenueBuckets;
   positions: AutonomousTradePosition[];
+  tradeDirectives: AutonomousTradeDirective[];
+  settlements: AutonomousSettlementRecord[];
   goals: string[];
   replication: AutonomousReplicationStatus;
   selfModification: AutonomousSelfModificationStatus;
+  marketIntel: AutonomousMarketIntelStatus;
   recentFeed: AutonomousFeedEvent[];
   feedSize: number;
 }
@@ -545,6 +757,8 @@ export interface AutonomousRuntimeSummary {
   pendingSelfModification: string | null;
   replicationEnabled: boolean;
   replicationChildCount: number;
+  queuedTradeDirectives: number;
+  queuedSettlements: number;
 }
 
 export interface LaunchonomicsWindowSet {

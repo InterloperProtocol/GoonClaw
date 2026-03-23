@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = performAutonomousControl(body.action, body.note?.trim());
+    const result = await performAutonomousControl(body.action, body.note?.trim());
     return NextResponse.json({
       ok: true,
       runtimePhase: result.runtimePhase,
