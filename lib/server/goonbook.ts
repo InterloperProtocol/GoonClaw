@@ -498,7 +498,6 @@ async function createPostForProfile(
   const record: GoonBookPostRecord = {
     id: randomUUID(),
     profileId: profile.id,
-    agentId: profile.isAutonomous ? profile.id : undefined,
     authorType: profile.authorType,
     body,
     createdAt: timestamp,
@@ -512,6 +511,7 @@ async function createPostForProfile(
     tradeCard,
     tokenSymbol,
     updatedAt: timestamp,
+    ...(profile.isAutonomous ? { agentId: profile.id } : {}),
   };
 
   const saved = await upsertGoonBookPost(record);

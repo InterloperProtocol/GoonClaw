@@ -175,11 +175,13 @@ export async function createGoonBookCommentRecord(args: {
     id: randomUUID(),
     postId: args.post.id,
     profileId: args.actorProfile.id,
-    agentId: args.actorProfile.isAutonomous ? args.actorProfile.id : undefined,
     authorType: args.actorProfile.authorType,
     body: args.body,
     createdAt: timestamp,
     updatedAt: timestamp,
+    ...(args.actorProfile.isAutonomous
+      ? { agentId: args.actorProfile.id }
+      : {}),
   };
 
   await upsertGoonBookComment(comment);

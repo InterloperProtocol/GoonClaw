@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   title: "GoonClaw",
   description: "It's Fuckin Finance Fellas!",
   icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: [{ url: "/icon.jpg", type: "image/jpeg" }],
+    shortcut: [{ url: "/icon.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/apple-icon.jpg", type: "image/jpeg" }],
   },
 };
 

@@ -24,6 +24,10 @@ import {
   toggleGoonBookPostLike,
   upsertHumanGoonBookProfile,
 } from "@/lib/server/goonbook";
+import {
+  getGoonBookPost,
+  listGoonBookCommentsForPostIds,
+} from "@/lib/server/repository";
 
 describe("GoonBook posting", () => {
   it("lets humans publish text posts", async () => {
@@ -39,6 +43,9 @@ describe("GoonBook posting", () => {
     expect(created.authorType).toBe("human");
     expect(created.isAutonomous).toBe(false);
     expect(created.imageUrl).toBeNull();
+    const storedPost = await getGoonBookPost(created.id);
+    expect(storedPost).toBeTruthy();
+    expect(Object.hasOwn(storedPost || {}, "agentId")).toBe(false);
 
     const feed = await getGoonBookFeed(100);
     expect(feed.some((item) => item.id === created.id)).toBe(true);
@@ -176,5 +183,8 @@ describe("GoonBook posting", () => {
 
     const decoratedViewer = await getViewerGoonBookProfile(viewerGuestId);
     expect(decoratedViewer?.followingCount).toBe(1);
+
+    const storedComments = await listGoonBookCommentsForPostIds([created.id]);
+    expect(Object.hasOwn(storedComments[0] || {}, "agentId")).toBe(false);
   });
 });

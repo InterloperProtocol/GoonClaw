@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { SiteNav } from "@/components/SiteNav";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
-  DEFAULT_GOONCLAW_DOC,
   GOONCLAW_DOCS,
   getGoonclawDoc,
-  getGoonclawDocHref,
   getGoonclawDocsBySection,
 } from "@/lib/goonclaw-docs";
 
@@ -23,10 +21,10 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const doc = slug?.length ? getGoonclawDoc(slug) : DEFAULT_GOONCLAW_DOC;
+  const doc = getGoonclawDoc(slug);
 
   return doc
     ? {
@@ -41,14 +39,9 @@ export async function generateMetadata({
 export default async function GoonclawDocsPage({
   params,
 }: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-
-  if (!slug?.length) {
-    redirect(getGoonclawDocHref(DEFAULT_GOONCLAW_DOC.slug));
-  }
-
   const doc = getGoonclawDoc(slug);
   if (!doc) {
     notFound();
@@ -73,7 +66,7 @@ export default async function GoonclawDocsPage({
               <div key={group.section} className="docs-nav-section">
                 <span>{group.section}</span>
                 {group.docs.map((item) => {
-                  const href = getGoonclawDocHref(item.slug);
+                  const href = `/docs/${item.slug.join("/")}`;
                   const isActive = item.slug.join("/") === doc.slug.join("/");
 
                   return (
@@ -93,7 +86,7 @@ export default async function GoonclawDocsPage({
 
         <article className="docs-article panel">
           <div className="docs-breadcrumbs">
-            <Link href="/docs/introduction/what-is-goonclaw">Docs</Link>
+            <Link href="/docs">Docs</Link>
             <span>/</span>
             <span>{doc.section}</span>
           </div>
