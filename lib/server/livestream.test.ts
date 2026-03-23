@@ -190,12 +190,57 @@ describe("livestream payment verification", () => {
       status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      runtimeOwnerId: "runtime-1",
+      runtimeLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
     });
 
     await syncLivestreamQueue();
 
     expect(workerClientModule.dispatchSessionStart).not.toHaveBeenCalled();
     expect(workerClientModule.dispatchSessionStop).not.toHaveBeenCalled();
+  });
+
+  it("replaces a stale idle public chartsync session whose runtime lease expired", async () => {
+    envModule.getServerEnv.mockReturnValue({
+      ...envModule.getServerEnv(),
+      PUBLIC_AUTOBLOW_DEVICE_TOKEN: "71nt0tdpv35q",
+    });
+    await upsertSession({
+      id: "public-session-stale",
+      wallet: PUBLIC_LIVESTREAM_OWNER_ID,
+      contractAddress: DEFAULT_PUMP_TOKEN_MINT,
+      deviceId: PUBLIC_LIVESTREAM_DEVICE_ID,
+      deviceType: "autoblow",
+      mode: "live",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      runtimeOwnerId: "runtime-old",
+      runtimeLeaseExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+    });
+    workerClientModule.dispatchSessionStart.mockResolvedValue({
+      id: "public-session-fresh",
+      wallet: PUBLIC_LIVESTREAM_OWNER_ID,
+      contractAddress: DEFAULT_PUMP_TOKEN_MINT,
+      deviceId: PUBLIC_LIVESTREAM_DEVICE_ID,
+      deviceType: "autoblow",
+      mode: "live",
+      status: "starting",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    await syncLivestreamQueue();
+
+    expect(workerClientModule.dispatchSessionStop).toHaveBeenCalledWith(
+      "public-session-stale",
+    );
+    expect(workerClientModule.dispatchSessionStart).toHaveBeenCalledWith({
+      wallet: PUBLIC_LIVESTREAM_OWNER_ID,
+      contractAddress: DEFAULT_PUMP_TOKEN_MINT,
+      deviceId: PUBLIC_LIVESTREAM_DEVICE_ID,
+      mode: "live",
+    });
   });
 
   it("hands the public device from the idle chartsync session to the next paid queue request", async () => {
@@ -213,6 +258,8 @@ describe("livestream payment verification", () => {
       status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      runtimeOwnerId: "runtime-1",
+      runtimeLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
     });
     await upsertLivestreamRequest(
       buildRequest({

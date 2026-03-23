@@ -123,14 +123,42 @@ function matchesPublicLivestreamSession(session: SessionRecord) {
   );
 }
 
-async function getCurrentPublicLivestreamSession() {
+function hasActiveRuntimeLease(session: SessionRecord) {
+  return Boolean(
+    session.runtimeLeaseExpiresAt &&
+      new Date(session.runtimeLeaseExpiresAt).getTime() > Date.now(),
+  );
+}
+
+async function getPublicLivestreamSessionState() {
   const sessions = await listRecoverableSessions();
-  return sessions.find(matchesPublicLivestreamSession) ?? null;
+  let existing: SessionRecord | null = null;
+  const stale: SessionRecord[] = [];
+
+  for (const session of sessions) {
+    if (!matchesPublicLivestreamSession(session)) {
+      continue;
+    }
+
+    if (hasActiveRuntimeLease(session)) {
+      existing ??= session;
+      continue;
+    }
+
+    stale.push(session);
+  }
+
+  return {
+    existing,
+    stale,
+  };
 }
 
 async function startOrReusePublicLivestreamSession(contractAddress: string) {
-  const existing = await getCurrentPublicLivestreamSession();
+  const { existing, stale } = await getPublicLivestreamSessionState();
   const normalizedContractAddress = assertContractAddress(contractAddress);
+
+  await Promise.all(stale.map((session) => dispatchSessionStop(session.id).catch(() => null)));
 
   if (
     existing &&
