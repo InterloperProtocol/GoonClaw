@@ -141,7 +141,12 @@ async function getPublicLivestreamSessionState() {
     }
 
     if (hasActiveRuntimeLease(session)) {
-      existing ??= session;
+      if (!existing) {
+        existing = session;
+        continue;
+      }
+
+      stale.push(session);
       continue;
     }
 

@@ -48,6 +48,10 @@ function getRuntimeOwnerId() {
   return global.__goonclawRuntimeOwnerId;
 }
 
+function getRuntimeDeviceKey(session: Pick<SessionRecord, "wallet" | "deviceId">) {
+  return `${session.wallet}:${session.deviceId}`;
+}
+
 function getTickDelayMs(session: SessionRecord) {
   return session.mode === "live" ? 2_500 : 30_000;
 }
@@ -247,6 +251,15 @@ export async function startRuntimeSession(input: SessionStartInput) {
     throw new Error("Device not found");
   }
 
+  const recoverable = await listRecoverableSessions();
+  for (const session of recoverable) {
+    if (getRuntimeDeviceKey(session) !== getRuntimeDeviceKey(input)) {
+      continue;
+    }
+
+    await stopRuntimeSession(session.id);
+  }
+
   const timestamp = nowIso();
   const session: SessionRecord = {
     id: randomUUID(),
@@ -284,12 +297,39 @@ export async function rehydrateRuntimeSessions() {
   const recoverable = await listRecoverableSessions();
   const started: SessionRecord[] = [];
   const skipped: string[] = [];
+  const claimedDeviceKeys = new Set<string>();
 
   for (const session of recoverable) {
     if (getRuntimeMap().has(session.id)) {
       skipped.push(session.id);
       continue;
     }
+
+    const deviceKey = getRuntimeDeviceKey(session);
+    if (claimedDeviceKeys.has(deviceKey)) {
+      await markSessionStopped(
+        session.id,
+        "Superseded by a newer recoverable session for this device",
+      );
+      continue;
+    }
+
+    const activeRuntimeOnDevice = [...getRuntimeMap().values()].find(
+      (runtime) => getRuntimeDeviceKey(runtime.session) === deviceKey,
+    );
+    if (activeRuntimeOnDevice) {
+      if (activeRuntimeOnDevice.session.id === session.id) {
+        skipped.push(session.id);
+      } else {
+        await markSessionStopped(
+          session.id,
+          "Superseded by another active session for this device",
+        );
+      }
+      continue;
+    }
+
+    claimedDeviceKeys.add(deviceKey);
 
     try {
       const resumed = await createRuntimeSession({

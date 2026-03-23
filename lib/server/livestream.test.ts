@@ -243,6 +243,46 @@ describe("livestream payment verification", () => {
     });
   });
 
+  it("stops duplicate active public chartsync sessions and keeps the newest one", async () => {
+    envModule.getServerEnv.mockReturnValue({
+      ...envModule.getServerEnv(),
+      PUBLIC_AUTOBLOW_DEVICE_TOKEN: "71nt0tdpv35q",
+    });
+    await upsertSession({
+      id: "public-session-newest",
+      wallet: PUBLIC_LIVESTREAM_OWNER_ID,
+      contractAddress: DEFAULT_PUMP_TOKEN_MINT,
+      deviceId: PUBLIC_LIVESTREAM_DEVICE_ID,
+      deviceType: "autoblow",
+      mode: "live",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date(Date.now() + 1_000).toISOString(),
+      runtimeOwnerId: "runtime-new",
+      runtimeLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    await upsertSession({
+      id: "public-session-older",
+      wallet: PUBLIC_LIVESTREAM_OWNER_ID,
+      contractAddress: DEFAULT_PUMP_TOKEN_MINT,
+      deviceId: PUBLIC_LIVESTREAM_DEVICE_ID,
+      deviceType: "autoblow",
+      mode: "live",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      runtimeOwnerId: "runtime-old",
+      runtimeLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    await syncLivestreamQueue();
+
+    expect(workerClientModule.dispatchSessionStop).toHaveBeenCalledWith(
+      "public-session-older",
+    );
+    expect(workerClientModule.dispatchSessionStart).not.toHaveBeenCalled();
+  });
+
   it("hands the public device from the idle chartsync session to the next paid queue request", async () => {
     envModule.getServerEnv.mockReturnValue({
       ...envModule.getServerEnv(),
