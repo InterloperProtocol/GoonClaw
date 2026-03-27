@@ -45,32 +45,32 @@ const DEFAULT_REPLAY_KINDS = [
 const DEFAULT_DRAWDOWN_TIERS: AutonomousDrawdownTier[] = [
   {
     action: "monitor",
-    label: "watch",
-    notes: "Drawdown is low; continue observation without expanding risk.",
-    thresholdPct: 2.5,
+    label: "normal",
+    notes: "Below 8% drawdown, the runtime stays in normal observation mode.",
+    thresholdPct: 8,
   },
   {
     action: "tighten",
     label: "tighten",
-    notes: "Tighten sizing and slow new discretionary exposure.",
-    thresholdPct: 5,
+    notes: "Between 8% and 12% drawdown, size should be cut by 50% and pacing should slow.",
+    thresholdPct: 8,
   },
   {
     action: "halt_new_risk",
-    label: "halt",
-    notes: "Stop new discretionary risk until the drawdown recovers.",
-    thresholdPct: 8,
+    label: "exits-only",
+    notes: "Between 12% and 15% drawdown, new entries are blocked and only exits remain allowed.",
+    thresholdPct: 12,
   },
   {
     action: "force_deleverage",
     label: "delever",
-    notes: "Begin forced deleveraging and liquidation review.",
-    thresholdPct: 12,
+    notes: "At 14% drawdown, open risk should be reviewed for forced deleveraging before hard stop.",
+    thresholdPct: 14,
   },
   {
     action: "block_live_actions",
-    label: "circuit",
-    notes: "Hard circuit-breaker state: live actions remain blocked.",
+    label: "hard-stop",
+    notes: "Above 15% drawdown, live actions remain blocked until replay review completes.",
     thresholdPct: 15,
   },
 ];
@@ -226,20 +226,37 @@ export function getAutonomousRiskControlPlane(): AutonomousRiskControlPlane {
     locked,
     liveTradingAllowed,
     mutationLock: {
+      freezeAfterConsecutiveLosses: readRiskEnvNumber(
+        "TIANSHI_RISK_FREEZE_AFTER_RED_TRADES",
+        3,
+      ),
       locked,
       lockedAt: null,
+      minSampleTradesBeforeChange: readRiskEnvNumber(
+        "TIANSHI_RISK_MIN_SAMPLE_TRADES_BEFORE_CHANGE",
+        80,
+      ),
       notes:
-        "The mutation lock is conservative by default and keeps live-risk mutations disabled until a reviewed unlock is applied.",
+        "The mutation lock is conservative by default: after three red trades, same-day live edits stay blocked and paper replay remains mandatory until reviewed unlock.",
+      requirePaperReplay: true,
       reason: readRiskEnvString(
         "TIANSHI_RISK_MUTATION_LOCK_REASON",
         "Locked by default for conservative control-plane operation.",
       ),
+      sameDayLiveParamChangesAllowed: readRiskEnvBoolean(
+        "TIANSHI_RISK_SAME_DAY_LIVE_PARAM_CHANGES",
+        false,
+      ),
       unlockedByReviewRequired: true,
     },
     notes:
-      "The risk-control plane stays locked by default, treats live execution as opt-in, and blocks actions that lack evidence and replay artifacts.",
+      "The risk-control plane stays locked by default, keeps fast strategy code proposal-only, and makes the audited control plane the only layer allowed to approve risk.",
     polymarketLiveAllowed,
     positionSizing: {
+      kellyClipMultiplier: readRiskEnvNumber(
+        "TIANSHI_RISK_KELLY_CLIP_MULTIPLIER",
+        0.25,
+      ),
       maxOrderNotionalUsdc: readRiskEnvNumber(
         "TIANSHI_RISK_MAX_ORDER_NOTIONAL_USDC",
         25,
@@ -254,18 +271,37 @@ export function getAutonomousRiskControlPlane(): AutonomousRiskControlPlane {
         "TIANSHI_RISK_MIN_ORDER_NOTIONAL_USDC",
         1,
       ),
+      positionHardCapPct: readRiskEnvNumber(
+        "TIANSHI_RISK_POSITION_HARD_CAP_PCT",
+        maxPortfolioAllocationPct,
+      ),
       notes:
-        "Position sizing is capped by the reviewed portfolio percentage and by conservative per-order ceilings.",
+        "Position sizing follows min(max_position_notional, account_equity * risk_per_trade), with quarter-Kelly clipping and a hard percentage cap for live deployment.",
+      riskPerTradePct: readRiskEnvNumber(
+        "TIANSHI_RISK_RISK_PER_TRADE_PCT",
+        0.5,
+      ),
+      sizingFormula:
+        "size = min(max_position_notional, account_equity * risk_per_trade); Kelly fractions must be clipped by quarter-Kelly and the hard cap.",
     },
     slippageLiquidityGuard: {
+      maxSpreadBps: readRiskEnvNumber("TIANSHI_RISK_MAX_SPREAD_BPS", 30),
       maxPriceImpactPct: readRiskEnvNumber(
         "TIANSHI_RISK_MAX_PRICE_IMPACT_PCT",
         1,
       ),
       maxSlippageBps: readRiskEnvNumber("TIANSHI_RISK_MAX_SLIPPAGE_BPS", 75),
       minLiquidityUsd: readRiskEnvNumber("TIANSHI_RISK_MIN_LIQUIDITY_USD", 10_000),
+      minFiveMinuteVolumeUsd: readRiskEnvNumber(
+        "TIANSHI_RISK_MIN_FIVE_MINUTE_VOLUME_USD",
+        100_000,
+      ),
+      minTopOfBookDepthUsd: readRiskEnvNumber(
+        "TIANSHI_RISK_MIN_TOP_OF_BOOK_DEPTH_USD",
+        50_000,
+      ),
       notes:
-        "Live execution requires conservative slippage and liquidity checks; thin books stay off-limits.",
+        "Live execution requires slippage, spread, top-of-book depth, and rolling volume checks; thin books and degraded fills stay off-limits.",
     },
     version: readRiskEnvString("TIANSHI_RISK_CONTROL_VERSION", DEFAULT_RISK_VERSION),
   };
@@ -428,11 +464,14 @@ export function assertAutonomousTradeAllowed(args: {
   currentPositionUsdc?: number;
   estimatedSlippageBps?: number;
   evidenceProvided?: boolean;
+  fiveMinuteVolumeUsd?: number;
   isPumpCoin: boolean;
   priceImpactPct?: number;
   portfolioValueUsdc: number;
   requestedNotionalUsdc: number;
   replayProvided?: boolean;
+  spreadBps?: number;
+  topOfBookDepthUsd?: number;
   executionMode?: "declarative" | "live";
   venue: AutonomousTradeVenue;
 }) {
@@ -513,12 +552,36 @@ export function assertAutonomousTradeAllowed(args: {
     throw new Error("Portfolio value must be positive before trading.");
   }
 
+  if (requestedNotionalUsdc < riskPlane.positionSizing.minOrderNotionalUsdc) {
+    throw new Error(
+      `Trade notional is below the ${riskPlane.positionSizing.minOrderNotionalUsdc} USDC minimum.`,
+    );
+  }
+
+  if (requestedNotionalUsdc > riskPlane.positionSizing.maxOrderNotionalUsdc) {
+    throw new Error(
+      `Trade notional exceeds the ${riskPlane.positionSizing.maxOrderNotionalUsdc} USDC per-order ceiling.`,
+    );
+  }
+
   const maxSinglePositionUsdc = Number(
     ((portfolioValueUsdc * maxPortfolioAllocationPct) / 100).toFixed(6),
+  );
+  const hardCapPositionUsdc = Number(
+    (
+      (portfolioValueUsdc * riskPlane.positionSizing.positionHardCapPct) /
+      100
+    ).toFixed(6),
   );
   const resultingPositionUsdc = Number(
     (currentPositionUsdc + requestedNotionalUsdc).toFixed(6),
   );
+
+  if (resultingPositionUsdc > hardCapPositionUsdc) {
+    throw new Error(
+      `Trade would exceed the ${riskPlane.positionSizing.positionHardCapPct}% hard position cap.`,
+    );
+  }
 
   if (resultingPositionUsdc > maxSinglePositionUsdc) {
     throw new Error(
@@ -526,6 +589,35 @@ export function assertAutonomousTradeAllowed(args: {
         ? `Tianshi may not allocate more than ${maxPortfolioAllocationPct}% of the portfolio to a single Hyperliquid perpetual position.`
         : `Tianshi may not allocate more than ${maxPortfolioAllocationPct}% of the portfolio to a single approved launch-token position.`,
     );
+  }
+
+  if (args.executionMode === "live") {
+    if (
+      args.topOfBookDepthUsd != null &&
+      args.topOfBookDepthUsd < riskPlane.slippageLiquidityGuard.minTopOfBookDepthUsd
+    ) {
+      throw new Error(
+        `Top-of-book depth is below the ${riskPlane.slippageLiquidityGuard.minTopOfBookDepthUsd} USD guard.`,
+      );
+    }
+
+    if (
+      args.fiveMinuteVolumeUsd != null &&
+      args.fiveMinuteVolumeUsd < riskPlane.slippageLiquidityGuard.minFiveMinuteVolumeUsd
+    ) {
+      throw new Error(
+        `Rolling 5-minute volume is below the ${riskPlane.slippageLiquidityGuard.minFiveMinuteVolumeUsd} USD guard.`,
+      );
+    }
+
+    if (
+      args.spreadBps != null &&
+      args.spreadBps > riskPlane.slippageLiquidityGuard.maxSpreadBps
+    ) {
+      throw new Error(
+        `Spread exceeds the ${riskPlane.slippageLiquidityGuard.maxSpreadBps} bps guard.`,
+      );
+    }
   }
 
   return true;

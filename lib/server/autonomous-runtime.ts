@@ -5,6 +5,7 @@ import { warmGodmodeAgentAbility } from "@/lib/server/godmode-agent";
 import { warmHyperliquidAgentAbility } from "@/lib/server/hyperliquid-agent";
 import { warmPolymarketAgentAbility } from "@/lib/server/polymarket-agent";
 import { bootstrapTianshiTelegramBot } from "@/lib/server/tianshi-telegram";
+import { bootstrapTianshiWechatRelay } from "@/lib/server/tianshi-wechat";
 
 declare global {
   var __tianshiAutonomousRuntimeStarted: boolean | undefined;
@@ -41,6 +42,16 @@ export function startAutonomousRuntimeLoop() {
     })
     .catch((error) => {
       console.warn("[tianshi-automaton] telegram bootstrap failed", error);
+    });
+
+  void bootstrapTianshiWechatRelay()
+    .then((enabled) => {
+      if (enabled) {
+        console.log("[tianshi-automaton] wechat relay ready");
+      }
+    })
+    .catch((error) => {
+      console.warn("[tianshi-automaton] wechat bootstrap failed", error);
     });
 
   void warmDexterAgentAbility()

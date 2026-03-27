@@ -127,6 +127,11 @@ import type {
 } from "@/lib/simulation/types";
 import { buildTianezhaOpportunities } from "@/lib/tianshi/opportunityEngine";
 import { buildWalletHermesIntro } from "@/lib/tianshi/formatters";
+import {
+  buildTianshiBotSurfaceStatuses,
+  TIANSHI_BRAIN_MEMORY,
+  type TianshiBotSurfaceStatus,
+} from "@/lib/tianshi/brainMemory";
 import { ensureWalletHermesAgent } from "@/lib/tianshi/walletAgentManager";
 import type { BitClawPost, BitClawPostRecord, BitClawProfile } from "@/lib/types";
 import { addMinutes, clamp, nowIso, seededNumber, sha256Hex } from "@/lib/utils";
@@ -299,7 +304,9 @@ export type TianshiDiagnosticsState = {
     label: string;
     status: string;
   }>;
+  botSurfaces: TianshiBotSurfaceStatus[];
   botBindings: BotBinding[];
+  brainMemory: typeof TIANSHI_BRAIN_MEMORY;
   diagnostics: Array<{
     label: string;
     value: string;
@@ -3558,6 +3565,13 @@ export async function getTianshiDiagnosticsState() {
   const reportCommerce = getAutonomousReportCommercePolicy();
   const runtime = getTianshiRuntimeControl();
   const simChain = getSimChainSummary();
+  const env = getServerEnv();
+  const botSurfaces = buildTianshiBotSurfaceStatuses({
+    telegramRelayConfigured: Boolean(
+      env.TIANSHI_TELEGRAM_BOT_TOKEN && env.TIANSHI_TELEGRAM_CHAT_ID,
+    ),
+    wechatRelayConfigured: Boolean(env.TIANSHI_WECHAT_WEBHOOK_URL),
+  });
 
   return {
     agentAbilities: [
@@ -3634,6 +3648,8 @@ export async function getTianshiDiagnosticsState() {
       },
     ],
     botBindings: botBindings.slice(0, 12),
+    botSurfaces,
+    brainMemory: TIANSHI_BRAIN_MEMORY,
     diagnostics: [
       {
         label: "Runtime loop",

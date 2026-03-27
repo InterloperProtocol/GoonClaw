@@ -275,6 +275,9 @@ export function AutonomousAgentPanel() {
         <StatusBadge tone={status?.tooling.telegramBroadcastEnabled ? "success" : "neutral"}>
           {status?.tooling.telegramBroadcastEnabled ? "Telegram on" : "Telegram off"}
         </StatusBadge>
+        <StatusBadge tone={status?.tooling.wechatBroadcastEnabled ? "success" : "neutral"}>
+          {status?.tooling.wechatBroadcastEnabled ? "WeChat on" : "WeChat off"}
+        </StatusBadge>
         <StatusBadge
           tone={
             status?.tooling.tavilyMcpConfigured
@@ -361,7 +364,16 @@ export function AutonomousAgentPanel() {
         <div className="history-item">
           <div>
             <span>Broadcast route</span>
-            <strong>{status?.tooling.telegramBroadcastEnabled ? "Posting to Telegram" : "Feed paused"}</strong>
+            <strong>
+              {status?.tooling.telegramBroadcastEnabled || status?.tooling.wechatBroadcastEnabled
+                ? [
+                    status?.tooling.telegramBroadcastEnabled ? "Telegram" : null,
+                    status?.tooling.wechatBroadcastEnabled ? "WeChat" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" + ")
+                : "Feed paused"}
+            </strong>
           </div>
           <div>
             <span>Trading route</span>
@@ -467,12 +479,24 @@ export function AutonomousAgentPanel() {
             </strong>
           </div>
           <div>
+            <span>WeChat relay</span>
+            <strong>
+              {status?.tooling.wechatWebhookConfigured ? "Webhook ready" : "Not configured"}
+            </strong>
+          </div>
+        </div>
+        <div className="history-item">
+          <div>
             <span>Safety</span>
             <strong>
               {status?.treasury.transferGuardrails.arbitraryTransfersBlocked
                 ? "Protected"
                 : "Open"}
             </strong>
+          </div>
+          <div>
+            <span>Telegram chat</span>
+            <strong>{status?.tooling.telegramChatConfigured ? "Bound" : "Waiting"}</strong>
           </div>
         </div>
         <div className="history-item">

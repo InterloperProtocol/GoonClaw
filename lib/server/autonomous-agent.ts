@@ -6,6 +6,7 @@ import { CONSTITUTION } from "@/lib/constitution";
 import { getServerEnv } from "@/lib/env";
 import { getAgentModelStatus } from "@/lib/server/agent-model";
 import { getAgFundAgentStatus } from "@/lib/server/agfund-agent";
+import { getMainBrainBoundaryStatus } from "@/lib/server/main-brain-boundary";
 import {
   AutonomousSettlementExecutor,
   createDefaultAutonomousSettlementExecutor,
@@ -43,6 +44,10 @@ import {
   isTianshiTelegramBroadcastEnabled,
   publishAutonomousEventToTelegram,
 } from "@/lib/server/tianshi-telegram";
+import {
+  isTianshiWechatBroadcastEnabled,
+  publishAutonomousEventToWechat,
+} from "@/lib/server/tianshi-wechat";
 import { createBitClawPost } from "@/lib/server/bitclaw";
 import { getSolanaAgentRuntimeStatus } from "@/lib/server/solana-agent-runtime";
 import { getWalletSolBalance } from "@/lib/server/solana";
@@ -297,6 +302,7 @@ function buildRuntimeAutoTradeRationale(card: MarketTradeCard) {
 function emitAutonomousFeedEvent(event: AutonomousFeedEvent) {
   appendAutonomousFeedEvent(event);
   void publishAutonomousEventToTelegram(event).catch(() => null);
+  void publishAutonomousEventToWechat(event).catch(() => null);
 }
 
 function summarizeAutonomousSocialPost(body: string) {
@@ -2048,6 +2054,7 @@ export async function tickAutonomousHeartbeat(
 export function getAutonomousStatus() {
   const env = getServerEnv();
   const snapshot = getAutonomousSnapshot();
+  const mainBrainBoundary = getMainBrainBoundaryStatus();
   const modelRuntime = getAgentModelStatus();
   const solanaRuntime = getSolanaAgentRuntimeStatus();
   const recentFeed = listAutonomousFeedEvents(20);
@@ -2098,6 +2105,7 @@ export function getAutonomousStatus() {
     agentId: TIANSHI_AGENT_ID,
     constitutionHash,
     constitutionPath,
+    mainBrainBoundary,
     control: {
       ...snapshot.control,
       circuitBreakerState,
@@ -2111,6 +2119,7 @@ export function getAutonomousStatus() {
       "Route enforced buyback-and-burn settlements into the Tianshi token.",
       "Keep heartbeat, decisions, and tool traces public while private controls stay owner-only.",
       "Treat QAI, Gendelve, and Guildcoin as declarative theses, constraints, or watchlist metadata instead of direct trade instructions.",
+      "Keep main-brain prompt markers parent-derived, never expose raw boundary secrets, and never allow sub-agents to mutate sovereign state.",
       "Track the concrete X handles and token references from the brief as passive watchlist metadata only.",
       "Trade only approved Pump.fun and Four.meme launch tokens for spot routing, keep prediction-market context on Polygon, and cap any single token position at 10% of the tracked portfolio value.",
       "Expose Hyperliquid perpetual-market data to all agents and only light up shared perp routing when the approved Tianshi API wallet, master wallet, and live flag are all present.",
@@ -2210,6 +2219,8 @@ export function getAutonomousStatus() {
         hasTavilyMcpBridgeConfig() || configuredMcpServerNames.includes("tavily"),
       telegramBroadcastEnabled: isTianshiTelegramBroadcastEnabled(),
       telegramChatConfigured: Boolean(env.TIANSHI_TELEGRAM_CHAT_ID),
+      wechatBroadcastEnabled: isTianshiWechatBroadcastEnabled(),
+      wechatWebhookConfigured: Boolean(env.TIANSHI_WECHAT_WEBHOOK_URL),
       vendoredSkillNames,
       vertexOnly:
         env.AGENT_MODEL_PROVIDER === "vertex-ai-gemini" &&

@@ -14,6 +14,15 @@ describe("child brain gateway", () => {
     expect(proposal.parentBrainId).toBe("tianshi");
     expect(proposal.childBrainId).toBe("bolclaw");
     expect(proposal.requestedLamports).toBe("10000000");
+    expect(proposal.parentBoundary.parentBrainId).toBe("tianshi");
+    expect(proposal.parentBoundary.subAgentsMayMutateParent).toBe(false);
+    expect(proposal.parentBoundary.rawSecretsIncluded).toBe(false);
+    expect(proposal.parentBoundary.promptStartToken).toContain(
+      "TIANSHI_PARENT_START",
+    );
+    expect(proposal.parentBoundary.promptEndToken).toContain(
+      "TIANSHI_PARENT_END",
+    );
     expect(auditEvent.type).toBe("CHILD_PROPOSAL_RECEIVED");
   });
 

@@ -13,7 +13,9 @@ export async function GET() {
       hermes: getHermesClientStatus(),
       publisher: {
         privateOperatorRoute: "/api/bots/private-telegram",
+        privateWechatOperatorRoute: "/api/bots/private-wechat",
         publicBotRoute: "/api/bots/public-telegram",
+        publicWechatBotRoute: "/api/bots/public-wechat",
         publicSummaryRoute: "/api/tianshi/public-summary",
       },
       runtime: getTianshiRuntimeControl(),

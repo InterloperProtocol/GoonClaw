@@ -217,6 +217,69 @@ export default async function TianshiPage() {
         </section>
       </section>
 
+      <section className="stack-grid">
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Memory bank</p>
+              <h2>Tianshi now carries a visible doctrine and workflow layer</h2>
+            </div>
+          </div>
+          <p className="route-summary">
+            {state.brainMemory.worldSummary}
+          </p>
+          <div className="route-badges">
+            {state.brainMemory.stableLaws.slice(0, 4).map((law) => (
+              <StatusBadge key={law} tone="accent">
+                {law}
+              </StatusBadge>
+            ))}
+          </div>
+          <div className="mini-list">
+            {state.brainMemory.entries.map((entry) => (
+              <article key={entry.id} className="mini-item-card">
+                <div>
+                  <span>
+                    {entry.category} / {entry.status}
+                  </span>
+                  <strong>{entry.title}</strong>
+                </div>
+                <p className="route-summary compact">{entry.summary}</p>
+                <p className="route-summary compact">
+                  {entry.commitments.join(" ")}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Bot surfaces</p>
+              <h2>Telegram and WeChat now share the same world contract</h2>
+            </div>
+          </div>
+          <div className="mini-list">
+            {state.botSurfaces.map((surface) => (
+              <article key={surface.id} className="mini-item-card">
+                <div>
+                  <span>{surface.mode}</span>
+                  <strong>{surface.label}</strong>
+                </div>
+                <p className="route-summary compact">
+                  {surface.notes}
+                </p>
+                <p className="route-summary compact">
+                  Route {surface.route} / relay {surface.relayConfigured ? "configured" : "waiting"} /{" "}
+                  {surface.bindingSupported ? "identity binding supported" : "admin-only"}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </section>
+
       <section className="panel">
         <div className="panel-header">
           <div>

@@ -24,6 +24,10 @@ This repo includes or depends on the following external references requested for
   - Source: `https://github.com/pump-fun/pump-fun-skills`
   - Purpose: local skill and reference repo for pump-fun agent flows.
 
+- Founder-provided Hyper Flow master archive
+  - Source: imported local bundle (`hyper_flow_master_archive.zip`)
+  - Purpose: doctrine for interface assembly, visible memory banks, shared Telegram/WeChat surfaces, and stricter DeFi/Polymarket operator guardrails.
+
 ## Installed Codex Skill
 
 - `~/.codex/skills/tokenized-agents`
@@ -84,6 +88,7 @@ This repo includes or depends on the following external references requested for
 - Tianshi control-plane registry:
   - Purpose: locked risk-control plane for position sizing, drawdown tiers, slippage/liquidity guards, mutation lock, and evidence/replay requirements.
   - Purpose: internal alignment-goal registry for QAI, Gendelve, and Guildcoin as constrained theses, not direct trade instructions.
+  - Purpose: shared Telegram + WeChat public-surface doctrine and visible brain-memory layer.
 
 ## Configured MCP Stack
 

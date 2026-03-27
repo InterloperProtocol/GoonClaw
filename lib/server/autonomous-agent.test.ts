@@ -198,6 +198,13 @@ describe("autonomous agent policy", () => {
 
     expect(status.treasury.riskControlPlane.locked).toBe(true);
     expect(status.treasury.riskControlPlane.evidenceReplay.evidenceRequired).toBe(true);
+    expect(status.treasury.riskControlPlane.positionSizing.kellyClipMultiplier).toBe(0.25);
+    expect(status.treasury.riskControlPlane.positionSizing.sizingFormula).toContain(
+      "max_position_notional",
+    );
+    expect(status.treasury.riskControlPlane.slippageLiquidityGuard.maxSpreadBps).toBe(30);
+    expect(status.treasury.riskControlPlane.mutationLock.freezeAfterConsecutiveLosses).toBe(3);
+    expect(status.treasury.riskControlPlane.mutationLock.requirePaperReplay).toBe(true);
     expect(status.treasury.tradeGuardrails.allowedPerpVenues).toEqual(["hyperliquid"]);
     expect(status.reportCommerce.priceUsdc).toBe(0.01);
     expect(status.reportCommerce.purchaseWindowSeconds).toBe(1);
@@ -205,6 +212,18 @@ describe("autonomous agent policy", () => {
     expect(status.tooling.fourMemeEnabled).toBe(true);
     expect(status.tooling.hyperliquidEnabled).toBe(true);
     expect(status.tooling.hyperliquidApiUrl).toBe("https://api.hyperliquid.xyz");
+    expect(status.tooling.wechatBroadcastEnabled).toBe(false);
+    expect(status.tooling.wechatWebhookConfigured).toBe(false);
+    expect(status.mainBrainBoundary.parentBrainId).toBe("tianshi");
+    expect(status.mainBrainBoundary.configured).toBe(false);
+    expect(status.mainBrainBoundary.subAgentsMayMutateParent).toBe(false);
+    expect(status.mainBrainBoundary.rawSecretsIncluded).toBe(false);
+    expect(status.mainBrainBoundary.promptStartToken).toContain(
+      "TIANSHI_PARENT_START",
+    );
+    expect(status.mainBrainBoundary.promptEndToken).toContain(
+      "TIANSHI_PARENT_END",
+    );
     expect(status.alignmentGoals.map((goal) => goal.tokenSymbol)).toEqual([
       "QAI",
       "GENDELVE",
@@ -350,7 +369,7 @@ describe("autonomous agent policy", () => {
         requestedNotionalUsdc: 11,
         venue: "gmgn",
       }),
-    ).toThrow(/10% of the portfolio/i);
+    ).toThrow(/10% hard position cap|10% of the portfolio/i);
   });
 
   it("blocks non-pump trading venues even for pump coins", () => {
@@ -363,6 +382,18 @@ describe("autonomous agent policy", () => {
         venue: "pumpfun",
       }),
     ).toThrow(/reviewed routes/i);
+  });
+
+  it("blocks oversized orders against the explicit position-sizing ceiling", () => {
+    expect(() =>
+      assertAutonomousTradeAllowed({
+        assetMint: "mint-4",
+        isPumpCoin: true,
+        portfolioValueUsdc: 1_000,
+        requestedNotionalUsdc: 30,
+        venue: "gmgn",
+      }),
+    ).toThrow(/per-order ceiling/i);
   });
 
   it("queues chartsync trade capital until a pump-verified token is supplied", () => {

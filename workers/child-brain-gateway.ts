@@ -5,6 +5,10 @@ import {
   type ChildBrainProposal,
 } from "@/lib/types/brains";
 import { getChildBrainById } from "@/lib/brains/registry";
+import {
+  assertMainBrainPromptEnvelopeLockedToParent,
+  createMainBrainPromptEnvelope,
+} from "@/lib/server/main-brain-boundary";
 import { createAuditEvent } from "@/workers/audit-log";
 import { assertParentBrainExecutionAuthority } from "@/workers/security-guards";
 
@@ -53,6 +57,17 @@ export function createChildBrainProposal(args: {
     action: args.action,
   });
   const requestedAtMs = args.requestedAtMs ?? Date.now();
+  const parentBoundary = createMainBrainPromptEnvelope({
+    scope: `child-proposal:${args.action}`,
+    payload: {
+      action: args.action,
+      brainId: brain.id,
+      rationale: args.rationale,
+      requestedAtMs,
+      requestedLamports: args.requestedLamports?.toString(10) ?? null,
+      metadata: args.metadata ?? null,
+    },
+  });
 
   const proposal: ChildBrainProposal = {
     childBrainId: brain.id as ChildBrainProposal["childBrainId"],
@@ -63,6 +78,7 @@ export function createChildBrainProposal(args: {
     requestedLamports: args.requestedLamports?.toString(10),
     executionRule: CHILD_EXECUTION_RULE,
     status: "forwarded_to_parent",
+    parentBoundary,
     metadata: args.metadata,
   };
 
@@ -77,6 +93,11 @@ export function createChildBrainProposal(args: {
         parentBrainId: proposal.parentBrainId,
         action: proposal.action,
         requestedLamports: proposal.requestedLamports,
+        parentBoundaryFingerprint: proposal.parentBoundary.boundaryFingerprint,
+        parentBoundaryPayloadFingerprint:
+          proposal.parentBoundary.payloadFingerprint,
+        parentBoundaryStartToken: proposal.parentBoundary.promptStartToken,
+        parentBoundaryEndToken: proposal.parentBoundary.promptEndToken,
         ...args.metadata,
       },
     }),
@@ -91,6 +112,8 @@ export function escalateChildBrainProposal(
   proposal: ChildBrainProposal,
   escalatedAtMs = Date.now(),
 ) {
+  assertMainBrainPromptEnvelopeLockedToParent(proposal.parentBoundary);
+
   return {
     proposal,
     auditEvent: createAuditEvent({

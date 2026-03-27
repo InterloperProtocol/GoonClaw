@@ -1,4 +1,5 @@
 import type { CircuitBreakerState } from "@/lib/types/constitution";
+import type { MainBrainBoundaryStatus } from "@/lib/types/brains";
 
 export type DeviceType = "autoblow" | "handy" | "rest";
 
@@ -551,6 +552,10 @@ export interface AutonomousPositionSizingPolicy {
   maxOrderNotionalUsdc: number;
   maxSessionOrderNotionalUsdc: number;
   minOrderNotionalUsdc: number;
+  riskPerTradePct: number;
+  kellyClipMultiplier: number;
+  positionHardCapPct: number;
+  sizingFormula: string;
   notes: string;
 }
 
@@ -558,6 +563,9 @@ export interface AutonomousSlippageLiquidityGuard {
   maxSlippageBps: number;
   maxPriceImpactPct: number;
   minLiquidityUsd: number;
+  minTopOfBookDepthUsd: number;
+  minFiveMinuteVolumeUsd: number;
+  maxSpreadBps: number;
   notes: string;
 }
 
@@ -574,6 +582,10 @@ export interface AutonomousMutationLock {
   lockedAt: string | null;
   reason: string;
   unlockedByReviewRequired: boolean;
+  freezeAfterConsecutiveLosses: number;
+  minSampleTradesBeforeChange: number;
+  sameDayLiveParamChangesAllowed: boolean;
+  requirePaperReplay: boolean;
   notes: string;
 }
 
@@ -830,6 +842,8 @@ export interface AutonomousToolingStatus {
   polymarketActionNames: string[];
   telegramBroadcastEnabled: boolean;
   telegramChatConfigured: boolean;
+  wechatBroadcastEnabled: boolean;
+  wechatWebhookConfigured: boolean;
   agentWalletAddress: string | null;
   loadedSkillCount: number;
   loadedActionCount: number;
@@ -954,6 +968,7 @@ export interface AutonomousAgentStatus {
   purpose: string;
   constitutionPath: string;
   constitutionHash: string;
+  mainBrainBoundary: MainBrainBoundaryStatus;
   runtimePhase: AutonomousRuntimePhase;
   heartbeatAt: string;
   wakeReason: string;

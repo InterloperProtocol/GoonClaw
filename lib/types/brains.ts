@@ -53,6 +53,31 @@ export interface BrainConfig extends BrainPermissionSet {
   readonly summary: string;
 }
 
+export interface MainBrainBoundaryPromptEnvelope {
+  readonly parentBrainId: "tianshi";
+  readonly scope: string;
+  readonly boundaryFingerprint: string | null;
+  readonly payloadFingerprint: string;
+  readonly promptStartToken: string;
+  readonly promptEndToken: string;
+  readonly rawSecretsIncluded: false;
+  readonly subAgentsMayMutateParent: false;
+}
+
+export interface MainBrainBoundaryStatus {
+  readonly configured: boolean;
+  readonly parentBrainId: "tianshi";
+  readonly boundaryFingerprint: string | null;
+  readonly keyStartFingerprint: string | null;
+  readonly keyEndFingerprint: string | null;
+  readonly signatureFingerprint: string | null;
+  readonly promptStartToken: string;
+  readonly promptEndToken: string;
+  readonly rawSecretsIncluded: false;
+  readonly subAgentsMayMutateParent: false;
+  readonly promptPolicy: "env-derived-signature-envelope";
+}
+
 export type ChildBrainConfig = BrainConfig & {
   readonly sovereignty: "child";
   readonly parentBrainId: "tianshi";
@@ -89,6 +114,7 @@ export interface ChildBrainProposal {
   readonly requestedLamports?: string;
   readonly executionRule: typeof CHILD_EXECUTION_RULE;
   readonly status: "forwarded_to_parent";
+  readonly parentBoundary: MainBrainBoundaryPromptEnvelope;
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 

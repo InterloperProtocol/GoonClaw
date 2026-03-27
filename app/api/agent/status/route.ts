@@ -80,6 +80,8 @@ function sanitizePublicTooling(tooling?: Partial<AutonomousToolingStatus>) {
     taskMasterMcpConfigured: tooling?.taskMasterMcpConfigured ?? false,
     telegramBroadcastEnabled: tooling?.telegramBroadcastEnabled ?? false,
     telegramChatConfigured: tooling?.telegramChatConfigured ?? false,
+    wechatBroadcastEnabled: tooling?.wechatBroadcastEnabled ?? false,
+    wechatWebhookConfigured: tooling?.wechatWebhookConfigured ?? false,
     vendoredSkillNames,
     vertexOnly: tooling?.vertexOnly ?? false,
   };
