@@ -213,7 +213,21 @@ export interface LoadedIdentity {
   rewardLedger: RewardLedger;
   rewardUnlock: RewardUnlockState;
   verification: ProfileVerificationState;
+  walletHermesAgent?: WalletHermesAgent | null;
   wallDisclaimer: ProfileWallDisclaimer;
+}
+
+export interface WalletHermesAgent {
+  companionLabel: string;
+  createdAt: string;
+  guidance: string[];
+  id: string;
+  lastContextDigest: string;
+  profileId: string;
+  serviceStatus: "configured" | "local-fallback" | "unavailable";
+  summary: string;
+  updatedAt: string;
+  walletAddress: string;
 }
 
 export interface RAAgentIdentity {

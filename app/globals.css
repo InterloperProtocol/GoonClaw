@@ -2996,17 +2996,17 @@ pre.bitclaw-side-copy {
 
 .tianezha-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr) minmax(18rem, 24rem);
   gap: 1rem;
   align-items: start;
 }
 
 .tianezha-main,
-.tianezha-rail,
+.tianezha-left-rail,
+.tianezha-right-rail,
 .loaded-rail-shell,
+.loaded-sidebar-shell,
 .loaded-rail-panel,
-.loaded-rail-sections,
-.loaded-rail-section,
 .bitclaw-fantasy-grid,
 .simulation-card-grid,
 .stack-grid,
@@ -3022,8 +3022,16 @@ pre.bitclaw-side-copy {
   gap: 0.75rem;
 }
 
-.tianezha-rail,
-.loaded-rail-shell {
+.tianezha-main,
+.tianezha-left-rail,
+.tianezha-right-rail {
+  min-width: 0;
+}
+
+.tianezha-left-rail,
+.tianezha-right-rail,
+.loaded-rail-shell,
+.loaded-sidebar-shell {
   position: sticky;
   top: 1rem;
 }
@@ -3163,6 +3171,16 @@ pre.bitclaw-side-copy {
   max-height: min(38vh, 22rem);
 }
 
+.chat-opportunity-list,
+.loaded-sidebar-shell {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.chat-shell-meta {
+  gap: 0.45rem;
+}
+
 .chat-bubble.assistant {
   border-color: rgba(155, 200, 192, 0.3);
 }
@@ -3222,8 +3240,10 @@ details.panel[open] > summary {
     grid-template-columns: 1fr;
   }
 
-  .tianezha-rail,
-  .loaded-rail-shell {
+  .tianezha-left-rail,
+  .tianezha-right-rail,
+  .loaded-rail-shell,
+  .loaded-sidebar-shell {
     position: static;
   }
 }

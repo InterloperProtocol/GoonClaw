@@ -14,8 +14,8 @@ describe("homepage and identity reconstruction", () => {
     const html = renderHtml(await HomePage());
 
     expect(html).toContain("Enter a wallet. Rebuild your BitClaw profile. Enter the world.");
-    expect(html).toContain("Enter world");
-    expect(html).toContain("Persistent Tianezha rail");
+    expect(html).toContain("The left panel stays persistent across the shell.");
+    expect(html).toContain("Persistent Tianezha left shell");
     expectInOrder(html, [
       "BitClaw",
       "BolClaw",
@@ -41,7 +41,7 @@ describe("homepage and identity reconstruction", () => {
     expect(html).toContain(loaded.profile.displayName);
     expect(html).toContain(loaded.profile.simulationHandle);
     expect(html).toContain("Personality, avatar, and qNFTs are simulated profile fantasy elements.");
-    expect(html).toContain("Rebuild profile");
+    expect(html).toContain("Open BitClaw");
   });
 
   it("accepts valid wallet and registry inputs without signup or wallet connect", async () => {

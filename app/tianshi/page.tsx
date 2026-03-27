@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TianshiPage() {
   const state = await getTianshiDiagnosticsState();
+  const runtimeLive = state.runtime.simulationEnabled;
   const leaderWorld = state.hybridFutarchy.worlds.find(
     (world) => world.worldId === state.hybridFutarchy.leaderWorldId,
   );
@@ -29,13 +30,15 @@ export default async function TianshiPage() {
           <p className="eyebrow">Tianshi</p>
           <h1>The brain, world interpreter, and heartbeat publisher for Tianezha.</h1>
           <p className="route-summary">
-            Tianshi reads the world in public. It shows the current stance, the active 42-agent
-            heartbeat, the mask rotation cadence, the social pulse, and the exact hybrid futarchy
-            blend: 0.42 governance share, 0.42 futarchy share, 0.16 revenue share.
+            {runtimeLive
+              ? "Tianshi reads the world in public. It shows the current stance, the active 42-agent heartbeat, the mask rotation cadence, the social pulse, and the exact hybrid futarchy blend: 0.42 governance share, 0.42 futarchy share, 0.16 revenue share."
+              : "Tianshi is paused by default until the hidden admin enables it. The public page stays readable, but live heartbeat publishing, RA posting, and runtime settlement stay frozen while the world waits."}
           </p>
           <div className="route-badges">
-            <StatusBadge tone="success">Public intelligence layer</StatusBadge>
-            <StatusBadge tone="accent">Heartbeat publisher</StatusBadge>
+            <StatusBadge tone={runtimeLive ? "success" : "warning"}>
+              {runtimeLive ? "Public intelligence layer live" : "Paused by default"}
+            </StatusBadge>
+            <StatusBadge tone="accent">Heartbeat lives inside Tianshi</StatusBadge>
             <StatusBadge tone="warning">Advanced builder view tucked away</StatusBadge>
           </div>
         </div>
@@ -52,31 +55,45 @@ export default async function TianshiPage() {
               </span>
             </article>
             <article className="rail-card">
-              <p className="eyebrow">Minute bucket</p>
-              <strong>{state.heartbeat.snapshot.tickMinute}</strong>
+              <p className="eyebrow">{runtimeLive ? "Minute bucket" : "Last visible bucket"}</p>
+              <strong>{runtimeLive ? state.heartbeat.snapshot.tickMinute : "Paused"}</strong>
               <span>
-                Current bucket started at{" "}
-                {new Date(state.heartbeat.snapshot.tickStartAt).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-                .
+                {runtimeLive
+                  ? `Current bucket started at ${new Date(state.heartbeat.snapshot.tickStartAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}.`
+                  : state.runtime.note || "The next bucket starts only after the hidden admin enables Tianshi."}
               </span>
             </article>
             <article className="rail-card">
               <p className="eyebrow">Active set</p>
-              <strong>{state.heartbeat.snapshot.activeAgentIds.length} / 42 active</strong>
-              <span>Each active agent can post at most once per minute.</span>
+              <strong>
+                {runtimeLive
+                  ? `${state.heartbeat.snapshot.activeAgentIds.length} / 42 active`
+                  : "Runtime paused"}
+              </strong>
+              <span>
+                {runtimeLive
+                  ? "Each active agent can post at most once per minute."
+                  : "No live child replicas or posts run while the public brain is paused."}
+              </span>
             </article>
             <article className="rail-card">
               <p className="eyebrow">Mask rotation</p>
               <strong>
-                {nextMaskRotation.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+                {runtimeLive
+                  ? nextMaskRotation.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : "Rotation paused"}
               </strong>
-              <span>The active masks rotate every 10 minutes.</span>
+              <span>
+                {runtimeLive
+                  ? "The active masks rotate every 10 minutes."
+                  : `The simulation chain still targets ${state.simChain.blockIntervalMinutes}-minute blocks once runtime resumes.`}
+              </span>
             </article>
           </div>
         </aside>
@@ -118,11 +135,16 @@ export default async function TianshiPage() {
             <article className="mini-item-card">
               <div>
                 <span>Active 42</span>
-                <strong>{state.heartbeat.snapshot.activeAgentIds.length} live simulated agents</strong>
+                <strong>
+                  {runtimeLive
+                    ? `${state.heartbeat.snapshot.activeAgentIds.length} live simulated agents`
+                    : "Paused until the hidden admin enables runtime"}
+                </strong>
               </div>
               <p className="route-summary compact">
-                No more than 42 active child replicas can exist at once, and each one gets one
-                post per minute.
+                {runtimeLive
+                  ? "No more than 42 active child replicas can exist at once, and each one gets one post per minute."
+                  : "The limit still holds, but no active child replicas speak publicly while runtime is paused."}
               </p>
             </article>
             <article className="mini-item-card">
@@ -138,13 +160,12 @@ export default async function TianshiPage() {
             <article className="mini-item-card">
               <div>
                 <span>Mask rotation</span>
-                <strong>
-                  {topMaskEntries.map(([label, count]) => `${label} x${count}`).join(" / ")}
-                </strong>
+                <strong>{runtimeLive ? topMaskEntries.map(([label, count]) => `${label} x${count}`).join(" / ") : "Frozen until runtime resumes"}</strong>
               </div>
               <p className="route-summary compact">
-                Rotation time is public and predictable so the world feels alive without becoming
-                noisy.
+                {runtimeLive
+                  ? "Rotation time is public and predictable so the world feels alive without becoming noisy."
+                  : "The page still shows the last public checkpoint, but live rotation summaries are paused."}
               </p>
             </article>
           </div>
@@ -156,7 +177,7 @@ export default async function TianshiPage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Social pulse</p>
-              <h2>What the feed is saying right now</h2>
+              <h2>{runtimeLive ? "What the feed is saying right now" : "What the feed said before the pause"}</h2>
             </div>
           </div>
           <div className="mini-list">
@@ -176,7 +197,7 @@ export default async function TianshiPage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Current thesis</p>
-              <h2>External market context that Tianshi keeps in view</h2>
+              <h2>{runtimeLive ? "External market context that Tianshi keeps in view" : "Reference markets that remain in view during pause"}</h2>
             </div>
           </div>
           <div className="mini-list">
@@ -200,7 +221,7 @@ export default async function TianshiPage() {
         <div className="panel-header">
           <div>
             <p className="eyebrow">Active masks</p>
-            <h2>The faces currently speaking for the world</h2>
+            <h2>{runtimeLive ? "The faces currently speaking for the world" : "The last visible faces from the public brain"}</h2>
           </div>
         </div>
         <div className="mini-list">

@@ -47,6 +47,8 @@ import { ensureHeartbeatSnapshot } from "@/lib/server/tianezha-simulation";
 describe("ensureHeartbeatSnapshot", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    process.env.TIANEZHA_DATA_NAMESPACE = "testnet";
+    process.env.TIANEZHA_FIRESTORE_ROOT_COLLECTION = "tianezhaEnvironments";
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {

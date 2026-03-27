@@ -9,14 +9,23 @@ import {
   getHeartbeatState,
   getTianshiDiagnosticsState,
 } from "@/lib/server/tianezha-simulation";
+import { setTianshiRuntimeControl } from "@/lib/server/tianshi-runtime-control";
 
 describe("Tianshi merged heartbeat flows", () => {
+  beforeEach(() => {
+    setTianshiRuntimeControl({
+      lastChangedBy: "vitest",
+      note: "Paused by default for regression coverage.",
+      simulationEnabled: false,
+    });
+  });
+
   it("renders the merged brain and heartbeat publisher surface without leading with raw diagnostics", async () => {
     const html = renderHtml(await TianshiPage());
 
     expect(html).toContain("The brain, world interpreter, and heartbeat publisher for Tianezha.");
     expect(html).toContain("Current stance");
-    expect(html).toContain("Minute bucket");
+    expect(html).toContain("Last visible bucket");
     expect(html).toContain("Signal board");
     expect(html).toContain("Heartbeat summary");
     expect(html).toContain("Social pulse");
@@ -24,10 +33,16 @@ describe("Tianshi merged heartbeat flows", () => {
     expect(html).toContain("Active masks");
     expect(html).toContain("Advanced view");
     expect(html).toContain("Collapsed by default");
+    expect(html).toContain("Paused by default");
     expect(html).not.toContain("HeartBeat");
   });
 
   it("keeps exactly 42 active agents with unique identities and no overflow beyond the active limit", async () => {
+    setTianshiRuntimeControl({
+      lastChangedBy: "vitest",
+      note: "Enabled for heartbeat regression.",
+      simulationEnabled: true,
+    });
     const heartbeat = await getHeartbeatState();
     const uniqueAgentIds = new Set(heartbeat.snapshot.activeAgentIds);
 
@@ -41,6 +56,11 @@ describe("Tianshi merged heartbeat flows", () => {
   });
 
   it("rotates masks on the 10-minute rule and limits heartbeat posts to one per active agent per minute", async () => {
+    setTianshiRuntimeControl({
+      lastChangedBy: "vitest",
+      note: "Enabled for heartbeat regression.",
+      simulationEnabled: true,
+    });
     vi.setSystemTime(new Date("2026-03-27T12:00:00.000Z"));
     const first = await ensureHeartbeatSnapshot(new Date());
     const firstState = await getHeartbeatState();
@@ -63,6 +83,11 @@ describe("Tianshi merged heartbeat flows", () => {
   });
 
   it("updates Merkle checkpoints only when expected and hides operator details behind the advanced surface", async () => {
+    setTianshiRuntimeControl({
+      lastChangedBy: "vitest",
+      note: "Enabled for heartbeat regression.",
+      simulationEnabled: true,
+    });
     vi.setSystemTime(new Date("2026-03-27T12:00:00.000Z"));
     const initial = await getTianshiDiagnosticsState();
 

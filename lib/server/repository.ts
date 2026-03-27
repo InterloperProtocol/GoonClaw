@@ -5,6 +5,10 @@ import {
 
 import { getServerEnv, isFirebaseConfigured, isProductionEnv } from "@/lib/env";
 import { encryptJson } from "@/lib/server/crypto";
+import {
+  getScopedFirestoreCollection,
+  getTianezhaDataNamespace,
+} from "@/lib/server/data-namespace";
 import { getConfiguredFirestore } from "@/lib/server/firestore-admin";
 import {
   PUBLIC_LIVESTREAM_DEVICE_ID,
@@ -43,14 +47,20 @@ type MemoryShape = {
   sessions: Map<string, SessionRecord>;
   livestreamRequests: Map<string, LivestreamRequestRecord>;
 };
+type NamespacedMemoryShape = Record<string, MemoryShape>;
 
 declare global {
-  var __tianshiMemory: MemoryShape | undefined;
+  var __tianshiMemory: NamespacedMemoryShape | undefined;
 }
 
 function getMemoryStore(): MemoryShape {
+  const namespace = getTianezhaDataNamespace();
   if (!global.__tianshiMemory) {
-    global.__tianshiMemory = {
+    global.__tianshiMemory = {};
+  }
+
+  if (!global.__tianshiMemory[namespace]) {
+    global.__tianshiMemory[namespace] = {
       devices: new Map(),
       entitlements: new Map(),
       bitClawAgentCredentials: new Map(),
@@ -66,7 +76,7 @@ function getMemoryStore(): MemoryShape {
     };
   }
 
-  return global.__tianshiMemory;
+  return global.__tianshiMemory[namespace];
 }
 
 function getAdminDb() {
@@ -100,6 +110,10 @@ function logFirestoreFallback(action: string, error: unknown) {
 
 function shouldAllowMemoryFallback() {
   return !isProductionEnv();
+}
+
+function getRepositoryCollection(db: Firestore, collectionName: string) {
+  return getScopedFirestoreCollection(db, collectionName);
 }
 
 async function withRepositoryBackend<T>(
@@ -193,8 +207,7 @@ export async function listDevices(wallet: string) {
       return items.map(sanitizeDevice);
     },
     async (db) => {
-      const snapshot = await db
-        .collection("deviceProfiles")
+      const snapshot = await getRepositoryCollection(db, "deviceProfiles")
         .where("wallet", "==", wallet)
         .orderBy("updatedAt", "desc")
         .get();
@@ -220,7 +233,7 @@ export async function getDevice(wallet: string, id: string) {
       return device;
     },
     async (db) => {
-      const doc = await db.collection("deviceProfiles").doc(id).get();
+      const doc = await getRepositoryCollection(db, "deviceProfiles").doc(id).get();
       if (!doc.exists) return null;
       const data = doc.data() as DeviceProfile;
       if (data.wallet !== wallet) return null;
@@ -237,8 +250,7 @@ export async function upsertDevice(profile: DeviceProfile) {
       return sanitizeDevice(profile);
     },
     async (db) => {
-      await db
-        .collection("deviceProfiles")
+      await getRepositoryCollection(db, "deviceProfiles")
         .doc(profile.id)
         .set(profile, { merge: true });
       return sanitizeDevice(profile);
@@ -257,7 +269,7 @@ export async function deleteDevice(wallet: string, id: string) {
       return true;
     },
     async (db) => {
-      await db.collection("deviceProfiles").doc(id).delete();
+      await getRepositoryCollection(db, "deviceProfiles").doc(id).delete();
       return true;
     },
   );
@@ -268,7 +280,7 @@ export async function getEntitlement(wallet: string) {
     "getEntitlement",
     () => getMemoryStore().entitlements.get(wallet) ?? null,
     async (db) => {
-      const doc = await db.collection("entitlements").doc(wallet).get();
+      const doc = await getRepositoryCollection(db, "entitlements").doc(wallet).get();
       return doc.exists ? (doc.data() as EntitlementRecord) : null;
     },
   );
@@ -282,8 +294,7 @@ export async function upsertEntitlement(record: EntitlementRecord) {
       return record;
     },
     async (db) => {
-      await db
-        .collection("entitlements")
+      await getRepositoryCollection(db, "entitlements")
         .doc(record.wallet)
         .set(record, { merge: true });
       return record;
@@ -299,7 +310,9 @@ export async function saveOrder(record: OrderRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("orders").doc(record.signature).set(record, { merge: true });
+      await getRepositoryCollection(db, "orders")
+        .doc(record.signature)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -310,7 +323,7 @@ export async function getOrder(signature: string) {
     "getOrder",
     () => getMemoryStore().orders.get(signature) ?? null,
     async (db) => {
-      const doc = await db.collection("orders").doc(signature).get();
+      const doc = await getRepositoryCollection(db, "orders").doc(signature).get();
       return doc.exists ? (doc.data() as OrderRecord) : null;
     },
   );
@@ -321,7 +334,9 @@ export async function getPublicStreamProfile(guestId: string) {
     "getPublicStreamProfile",
     () => getMemoryStore().publicStreamProfiles.get(guestId) ?? null,
     async (db) => {
-      const doc = await db.collection("publicStreamProfiles").doc(guestId).get();
+      const doc = await getRepositoryCollection(db, "publicStreamProfiles")
+        .doc(guestId)
+        .get();
       return doc.exists ? (doc.data() as PublicStreamProfile) : null;
     },
   );
@@ -335,8 +350,7 @@ export async function getPublicStreamProfileBySlug(slug: string) {
         (item) => item.slug === slug,
       ) ?? null,
     async (db) => {
-      const snapshot = await db
-        .collection("publicStreamProfiles")
+      const snapshot = await getRepositoryCollection(db, "publicStreamProfiles")
         .where("slug", "==", slug)
         .limit(1)
         .get();
@@ -356,7 +370,7 @@ export async function listPublicStreamProfiles() {
         b.updatedAt.localeCompare(a.updatedAt),
       ),
     async (db) => {
-      const snapshot = await db.collection("publicStreamProfiles").get();
+      const snapshot = await getRepositoryCollection(db, "publicStreamProfiles").get();
       return snapshot.docs
         .map((doc) => doc.data() as PublicStreamProfile)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -372,8 +386,7 @@ export async function upsertPublicStreamProfile(record: PublicStreamProfile) {
       return record;
     },
     async (db) => {
-      await db
-        .collection("publicStreamProfiles")
+      await getRepositoryCollection(db, "publicStreamProfiles")
         .doc(record.guestId)
         .set(record, { merge: true });
       return record;
@@ -386,7 +399,7 @@ export async function getBitClawPost(id: string) {
     "getBitClawPost",
     () => getMemoryStore().bitClawPosts.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("bitClawPosts").doc(id).get();
+      const doc = await getRepositoryCollection(db, "bitClawPosts").doc(id).get();
       return doc.exists ? (doc.data() as BitClawPostRecord) : null;
     },
   );
@@ -397,7 +410,7 @@ export async function getBitClawProfile(id: string) {
     "getBitClawProfile",
     () => getMemoryStore().bitClawProfiles.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("bitClawProfiles").doc(id).get();
+      const doc = await getRepositoryCollection(db, "bitClawProfiles").doc(id).get();
       return doc.exists ? (doc.data() as BitClawProfile) : null;
     },
   );
@@ -408,7 +421,9 @@ export async function getBitClawAgentCredential(id: string) {
     "getBitClawAgentCredential",
     () => getMemoryStore().bitClawAgentCredentials.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("bitClawAgentCredentials").doc(id).get();
+      const doc = await getRepositoryCollection(db, "bitClawAgentCredentials")
+        .doc(id)
+        .get();
       return doc.exists ? (doc.data() as BitClawAgentCredentialRecord) : null;
     },
   );
@@ -422,7 +437,7 @@ export async function listBitClawProfiles() {
         a.displayName.localeCompare(b.displayName),
       ),
     async (db) => {
-      const snapshot = await db.collection("bitClawProfiles").get();
+      const snapshot = await getRepositoryCollection(db, "bitClawProfiles").get();
       return snapshot.docs
         .map((doc) => doc.data() as BitClawProfile)
         .sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -438,7 +453,9 @@ export async function upsertBitClawProfile(record: BitClawProfile) {
       return record;
     },
     async (db) => {
-      await db.collection("bitClawProfiles").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "bitClawProfiles")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -454,8 +471,7 @@ export async function upsertBitClawAgentCredential(
       return record;
     },
     async (db) => {
-      await db
-        .collection("bitClawAgentCredentials")
+      await getRepositoryCollection(db, "bitClawAgentCredentials")
         .doc(record.id)
         .set(record, { merge: true });
       return record;
@@ -475,8 +491,7 @@ export async function listBitClawPosts(
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, limit),
     async (db) => {
-      const snapshot = await db
-        .collection("bitClawPosts")
+      const snapshot = await getRepositoryCollection(db, "bitClawPosts")
         .orderBy("createdAt", "desc")
         .limit(limit)
         .get();
@@ -496,7 +511,9 @@ export async function upsertBitClawPost(record: BitClawPostRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("bitClawPosts").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "bitClawPosts")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -518,7 +535,9 @@ export async function listBitClawCommentsForPostIds(postIds: string[]) {
       const chunks = chunkArray(normalizedIds, 10);
       const snapshots = await Promise.all(
         chunks.map((chunk) =>
-          db.collection("bitClawComments").where("postId", "in", chunk).get(),
+          getRepositoryCollection(db, "bitClawComments")
+            .where("postId", "in", chunk)
+            .get(),
         ),
       );
 
@@ -539,7 +558,9 @@ export async function upsertBitClawComment(record: BitClawCommentRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("bitClawComments").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "bitClawComments")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -561,7 +582,9 @@ export async function listBitClawLikeRecordsForPostIds(postIds: string[]) {
       const chunks = chunkArray(normalizedIds, 10);
       const snapshots = await Promise.all(
         chunks.map((chunk) =>
-          db.collection("bitClawLikes").where("postId", "in", chunk).get(),
+          getRepositoryCollection(db, "bitClawLikes")
+            .where("postId", "in", chunk)
+            .get(),
         ),
       );
 
@@ -579,7 +602,7 @@ export async function getBitClawLikeRecord(id: string) {
     "getBitClawLikeRecord",
     () => getMemoryStore().bitClawLikes.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("bitClawLikes").doc(id).get();
+      const doc = await getRepositoryCollection(db, "bitClawLikes").doc(id).get();
       return doc.exists ? (doc.data() as BitClawLikeRecord) : null;
     },
   );
@@ -593,7 +616,9 @@ export async function upsertBitClawLikeRecord(record: BitClawLikeRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("bitClawLikes").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "bitClawLikes")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -607,7 +632,7 @@ export async function deleteBitClawLikeRecord(id: string) {
       return true;
     },
     async (db) => {
-      await db.collection("bitClawLikes").doc(id).delete();
+      await getRepositoryCollection(db, "bitClawLikes").doc(id).delete();
       return true;
     },
   );
@@ -621,7 +646,7 @@ export async function listBitClawFollowRecords() {
         a.createdAt.localeCompare(b.createdAt),
       ),
     async (db) => {
-      const snapshot = await db.collection("bitClawFollows").get();
+      const snapshot = await getRepositoryCollection(db, "bitClawFollows").get();
       return snapshot.docs
         .map((doc) => doc.data() as BitClawFollowRecord)
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -634,7 +659,7 @@ export async function getBitClawFollowRecord(id: string) {
     "getBitClawFollowRecord",
     () => getMemoryStore().bitClawFollows.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("bitClawFollows").doc(id).get();
+      const doc = await getRepositoryCollection(db, "bitClawFollows").doc(id).get();
       return doc.exists ? (doc.data() as BitClawFollowRecord) : null;
     },
   );
@@ -648,7 +673,9 @@ export async function upsertBitClawFollowRecord(record: BitClawFollowRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("bitClawFollows").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "bitClawFollows")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -662,7 +689,7 @@ export async function deleteBitClawFollowRecord(id: string) {
       return true;
     },
     async (db) => {
-      await db.collection("bitClawFollows").doc(id).delete();
+      await getRepositoryCollection(db, "bitClawFollows").doc(id).delete();
       return true;
     },
   );
@@ -673,7 +700,7 @@ export async function getSession(id: string) {
     "getSession",
     () => getMemoryStore().sessions.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("sessions").doc(id).get();
+      const doc = await getRepositoryCollection(db, "sessions").doc(id).get();
       return doc.exists ? (doc.data() as SessionRecord) : null;
     },
   );
@@ -687,8 +714,7 @@ export async function listSessions(wallet: string) {
         .filter((session) => session.wallet === wallet)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     async (db) => {
-      const snapshot = await db
-        .collection("sessions")
+      const snapshot = await getRepositoryCollection(db, "sessions")
         .where("wallet", "==", wallet)
         .orderBy("updatedAt", "desc")
         .get();
@@ -708,8 +734,7 @@ export async function listRecoverableSessions() {
         )
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     async (db) => {
-      const snapshot = await db
-        .collection("sessions")
+      const snapshot = await getRepositoryCollection(db, "sessions")
         .where("status", "in", ["starting", "active"])
         .get();
 
@@ -728,7 +753,9 @@ export async function upsertSession(record: SessionRecord) {
       return record;
     },
     async (db) => {
-      await db.collection("sessions").doc(record.id).set(record, { merge: true });
+      await getRepositoryCollection(db, "sessions")
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -764,7 +791,7 @@ export async function acquireSessionLease(
       return next;
     },
     async (db) => {
-      const ref = db.collection("sessions").doc(record.id);
+      const ref = getRepositoryCollection(db, "sessions").doc(record.id);
       return db.runTransaction(async (transaction) => {
         const snapshot = await transaction.get(ref);
         const current = snapshot.exists ? (snapshot.data() as SessionRecord) : record;
@@ -833,7 +860,7 @@ export async function markSessionStopped(id: string, lastError?: string) {
       return next;
     },
     async (db) => {
-      await db.collection("sessions").doc(id).set(
+      await getRepositoryCollection(db, "sessions").doc(id).set(
         {
           ...next,
           runtimeOwnerId: FieldValue.delete(),
@@ -854,8 +881,7 @@ export async function upsertLivestreamRequest(record: LivestreamRequestRecord) {
       return record;
     },
     async (db) => {
-      await db
-        .collection("livestreamRequests")
+      await getRepositoryCollection(db, "livestreamRequests")
         .doc(record.id)
         .set(record, { merge: true });
       return record;
@@ -868,7 +894,9 @@ export async function getLivestreamRequest(id: string) {
     "getLivestreamRequest",
     () => getMemoryStore().livestreamRequests.get(id) ?? null,
     async (db) => {
-      const doc = await db.collection("livestreamRequests").doc(id).get();
+      const doc = await getRepositoryCollection(db, "livestreamRequests")
+        .doc(id)
+        .get();
       return doc.exists ? (doc.data() as LivestreamRequestRecord) : null;
     },
   );
@@ -882,8 +910,7 @@ export async function getLivestreamRequestByMemo(memo: string) {
         (item) => item.memo === memo,
       ) ?? null,
     async (db) => {
-      const snapshot = await db
-        .collection("livestreamRequests")
+      const snapshot = await getRepositoryCollection(db, "livestreamRequests")
         .where("memo", "==", memo)
         .limit(1)
         .get();
@@ -903,8 +930,7 @@ export async function getLivestreamRequestBySignature(signature: string) {
         (item) => item.signature === signature,
       ) ?? null,
     async (db) => {
-      const snapshot = await db
-        .collection("livestreamRequests")
+      const snapshot = await getRepositoryCollection(db, "livestreamRequests")
         .where("signature", "==", signature)
         .limit(1)
         .get();
@@ -938,8 +964,7 @@ export async function listLivestreamRequests(statuses?: LivestreamRequestStatus[
     },
     async (db) => {
       if (statuses?.length === 1) {
-        const snapshot = await db
-          .collection("livestreamRequests")
+        const snapshot = await getRepositoryCollection(db, "livestreamRequests")
           .where("status", "==", statuses[0])
           .orderBy("createdAt", "asc")
           .get();
@@ -947,16 +972,14 @@ export async function listLivestreamRequests(statuses?: LivestreamRequestStatus[
       }
 
       if (statuses && statuses.length > 1) {
-        const snapshot = await db
-          .collection("livestreamRequests")
+        const snapshot = await getRepositoryCollection(db, "livestreamRequests")
           .where("status", "in", statuses)
           .orderBy("createdAt", "asc")
           .get();
         return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
       }
 
-      const snapshot = await db
-        .collection("livestreamRequests")
+      const snapshot = await getRepositoryCollection(db, "livestreamRequests")
         .orderBy("createdAt", "asc")
         .get();
       return snapshot.docs.map((doc) => doc.data() as LivestreamRequestRecord);
@@ -974,8 +997,7 @@ export async function listLivestreamRequestsForGuest(guestId: string, limit = 10
       return sortLivestreamRequests(items, "desc").slice(0, limit);
     },
     async (db) => {
-      const snapshot = await db
-        .collection("livestreamRequests")
+      const snapshot = await getRepositoryCollection(db, "livestreamRequests")
         .where("guestId", "==", guestId)
         .orderBy("createdAt", "desc")
         .limit(limit)

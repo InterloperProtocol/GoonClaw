@@ -24,27 +24,26 @@ describe("public shell smoke", () => {
     expect(html).not.toContain(">Livestream<");
   });
 
-  it("renders the right rail before profile load with chatbot guidance and address entry help", async () => {
+  it("renders the left shell before profile load with chatbot guidance and address entry help", async () => {
     const html = renderHtml(await LoadedIdentityRail());
 
-    expect(html).toContain("Tianezha rail");
-    expect(html).toContain("Enter the world");
     expect(html).toContain("Tianezha chat");
-    expect(html).toContain("Ask how Tianezha works");
-    expect(html).toContain("No signup. No wallet connect.");
-    expect(html).toContain("BitClaw first, then the full world opens");
+    expect(html).toContain("Wallet loader");
+    expect(html).toContain("Enter the world");
+    expect(html).toContain("Guide, teach, and dispatch live opportunities");
+    expect(html).toContain("Enter any wallet, ENS, SNS, or .bnb name.");
   });
 
-  it("updates the right rail after profile load and keeps the loaded identity visible", async () => {
+  it("updates the left shell after profile load and keeps the loaded identity visible", async () => {
     const loaded = await loadOrCreateIdentity("vitalik.eth");
 
     const html = renderHtml(await LoadedIdentityRail());
 
-    expect(html).toContain("Your loaded profile and world state");
-    expect(html).toContain("Ask about your loaded world");
+    expect(html).toContain("Hermes is riding with");
+    expect(html).toContain("Switch or rebuild your character");
     expect(html).toContain(loaded.profile.displayName);
     expect(html).toContain(loaded.profile.simulationHandle);
-    expect(html).toContain("Simulated fantasy layer");
-    expect(html).toContain("World summary");
+    expect(html).toContain("Wallet-Hermes");
+    expect(html).toContain("Take the live Tianzi position");
   });
 });

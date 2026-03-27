@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { AddressLoadForm } from "@/components/identity/AddressLoadForm";
 import { TianezhaScaffold } from "@/components/shell/TianezhaScaffold";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -99,11 +98,10 @@ export default async function HomePage() {
             <StatusBadge tone="accent">BitClaw-first identity</StatusBadge>
             <StatusBadge tone="warning">Simulation-first world</StatusBadge>
           </div>
-          <AddressLoadForm
-            ctaLabel={loadedIdentity ? "Rebuild profile" : "Enter world"}
-            helperText="Accepts wallet addresses plus ENS, SNS, and .bnb names when available."
-            redirectToLoadedProfile
-          />
+          <p className="route-summary compact">
+            The left panel stays persistent across the shell. Enter a wallet there and Tianezha
+            rebuilds the character before routing you into the live world.
+          </p>
           <div className="button-row">
             <Link className="button button-primary" href={loadedBitClawHref}>
               {loadedIdentity ? "Open BitClaw" : "Browse BitClaw"}

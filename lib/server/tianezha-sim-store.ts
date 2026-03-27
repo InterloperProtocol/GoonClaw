@@ -1,6 +1,10 @@
 import { type Firestore } from "firebase-admin/firestore";
 
 import { getServerEnv, isFirebaseConfigured, isProductionEnv } from "@/lib/env";
+import {
+  getScopedFirestoreCollection,
+  getTianezhaDataNamespace,
+} from "@/lib/server/data-namespace";
 import { getConfiguredFirestore } from "@/lib/server/firestore-admin";
 import { FIRESTORE_SIM_COLLECTIONS } from "@/lib/simulation/constants";
 
@@ -8,9 +12,10 @@ type SimCollectionName =
   (typeof FIRESTORE_SIM_COLLECTIONS)[keyof typeof FIRESTORE_SIM_COLLECTIONS];
 
 type SimMemoryStore = Record<SimCollectionName, Map<string, unknown>>;
+type NamespacedSimMemoryStore = Record<string, SimMemoryStore>;
 
 declare global {
-  var __tianezhaSimulationStore: SimMemoryStore | undefined;
+  var __tianezhaSimulationStore: NamespacedSimMemoryStore | undefined;
 }
 
 function createMemoryStore(): SimMemoryStore {
@@ -21,11 +26,16 @@ function createMemoryStore(): SimMemoryStore {
 }
 
 function getMemoryStore() {
+  const namespace = getTianezhaDataNamespace();
   if (!global.__tianezhaSimulationStore) {
-    global.__tianezhaSimulationStore = createMemoryStore();
+    global.__tianezhaSimulationStore = {};
   }
 
-  return global.__tianezhaSimulationStore;
+  if (!global.__tianezhaSimulationStore[namespace]) {
+    global.__tianezhaSimulationStore[namespace] = createMemoryStore();
+  }
+
+  return global.__tianezhaSimulationStore[namespace];
 }
 
 function getAdminDb() {
@@ -64,6 +74,10 @@ function shouldAllowMemoryFallback() {
   return !isProductionEnv();
 }
 
+function getSimulationCollection(db: Firestore, collectionName: SimCollectionName) {
+  return getScopedFirestoreCollection(db, collectionName);
+}
+
 async function withSimulationBackend<T>(
   action: string,
   fallback: () => Promise<T> | T,
@@ -97,7 +111,7 @@ export async function simGet<T>(collectionName: SimCollectionName, id: string) {
     `simGet:${collectionName}`,
     () => (getMemoryStore()[collectionName].get(id) as T | undefined) ?? null,
     async (db) => {
-      const doc = await db.collection(collectionName).doc(id).get();
+      const doc = await getSimulationCollection(db, collectionName).doc(id).get();
       return doc.exists ? ((doc.data() as T) ?? null) : null;
     },
   );
@@ -108,7 +122,7 @@ export async function simList<T>(collectionName: SimCollectionName) {
     `simList:${collectionName}`,
     () => [...getMemoryStore()[collectionName].values()] as T[],
     async (db) => {
-      const snapshot = await db.collection(collectionName).get();
+      const snapshot = await getSimulationCollection(db, collectionName).get();
       return snapshot.docs.map((doc) => doc.data() as T);
     },
   );
@@ -125,7 +139,9 @@ export async function simUpsert<T extends { id: string }>(
       return record;
     },
     async (db) => {
-      await db.collection(collectionName).doc(record.id).set(record, { merge: true });
+      await getSimulationCollection(db, collectionName)
+        .doc(record.id)
+        .set(record, { merge: true });
       return record;
     },
   );
@@ -139,7 +155,7 @@ export async function simDelete(collectionName: SimCollectionName, id: string) {
       return true;
     },
     async (db) => {
-      await db.collection(collectionName).doc(id).delete();
+      await getSimulationCollection(db, collectionName).doc(id).delete();
       return true;
     },
   );

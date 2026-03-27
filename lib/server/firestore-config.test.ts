@@ -21,17 +21,23 @@ const appModule = vi.hoisted(() => {
 });
 
 const firestoreModule = vi.hoisted(() => {
+  const namespacedCollection = {
+    doc: vi.fn(() => ({
+      set: vi.fn(async () => undefined),
+    })),
+  };
   const db = {
     settings: vi.fn(),
     collection: vi.fn(() => ({
       doc: vi.fn(() => ({
-        set: vi.fn(async () => undefined),
+        collection: vi.fn(() => namespacedCollection),
       })),
     })),
   };
 
   return {
     db,
+    namespacedCollection,
     FieldValue: {
       delete: vi.fn(() => "__delete__"),
     },
@@ -49,6 +55,8 @@ describe("Firestore admin configuration", () => {
     process.env.FIREBASE_PROJECT_ID = "tianezha-app";
     process.env.FIREBASE_CLIENT_EMAIL = "firestore@test.invalid";
     process.env.FIREBASE_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----";
+    process.env.TIANEZHA_DATA_NAMESPACE = "testnet";
+    process.env.TIANEZHA_FIRESTORE_ROOT_COLLECTION = "tianezhaEnvironments";
     delete process.env.FIREBASE_CONFIG;
     (globalThis as { __tianezhaAdminDb?: unknown }).__tianezhaAdminDb = undefined;
     (globalThis as { __tianshiMemory?: unknown }).__tianshiMemory = undefined;
@@ -78,6 +86,8 @@ describe("Firestore admin configuration", () => {
     expect(firestoreModule.db.settings).toHaveBeenCalledWith({
       ignoreUndefinedProperties: true,
     });
+    expect(firestoreModule.db.collection).toHaveBeenCalledWith("tianezhaEnvironments");
+    expect(firestoreModule.namespacedCollection.doc).toHaveBeenCalledWith("profile-1");
   });
 
   it("initializes simulation Firestore with ignoreUndefinedProperties enabled", async () => {
@@ -92,5 +102,7 @@ describe("Firestore admin configuration", () => {
     expect(firestoreModule.db.settings).toHaveBeenCalledWith({
       ignoreUndefinedProperties: true,
     });
+    expect(firestoreModule.db.collection).toHaveBeenCalledWith("tianezhaEnvironments");
+    expect(firestoreModule.namespacedCollection.doc).toHaveBeenCalledWith("profile-1");
   });
 });

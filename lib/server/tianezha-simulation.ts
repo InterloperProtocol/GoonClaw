@@ -23,6 +23,7 @@ import {
 } from "@/lib/server/polymarket-agent";
 import { getAutonomousReportCommercePolicy } from "@/lib/server/autonomous-treasury-policy";
 import { getBenchmarkQuotes, getTokenWorldQuote } from "@/lib/server/tianezha-market-data";
+import { getSimChainSummary, type SimChainSummary } from "@/lib/server/sim-chain";
 import {
   getSimulationOwnerWallet,
   simDelete,
@@ -52,6 +53,7 @@ import {
   verifyBnbMemoTransaction,
   verifySolanaTokenTransferToTarget,
 } from "@/lib/server/tianezha-chain-data";
+import { getTianshiRuntimeControl } from "@/lib/server/tianshi-runtime-control";
 import {
   ACTIVE_HEARTBEAT_AGENT_LIMIT,
   FIRESTORE_SIM_COLLECTIONS,
@@ -123,6 +125,9 @@ import type {
   VerifiedHolderWorld,
   VerificationEvent,
 } from "@/lib/simulation/types";
+import { buildTianezhaOpportunities } from "@/lib/tianshi/opportunityEngine";
+import { buildWalletHermesIntro } from "@/lib/tianshi/formatters";
+import { ensureWalletHermesAgent } from "@/lib/tianshi/walletAgentManager";
 import type { BitClawPost, BitClawPostRecord, BitClawProfile } from "@/lib/types";
 import { addMinutes, clamp, nowIso, seededNumber, sha256Hex } from "@/lib/utils";
 
@@ -240,12 +245,16 @@ export type HeartbeatAgentCard = {
 };
 
 export type HeartbeatState = {
-  merkleSnapshots: MerkleSnapshotRecord[];
+  agents: HeartbeatAgentCard[];
   hyperliquid: SharedHyperliquidCapability;
+  merkleSnapshots: MerkleSnapshotRecord[];
   polymarketMarkets: PolymarketMarketSnapshot[];
   recentFeed: BitClawPost[];
+  runtime: {
+    note: string | null;
+    simulationEnabled: boolean;
+  };
   snapshot: Heartbeat42Snapshot;
-  agents: HeartbeatAgentCard[];
 };
 
 export type TianziState = {
@@ -301,6 +310,25 @@ export type TianshiDiagnosticsState = {
   merkleSnapshots: MerkleSnapshotRecord[];
   percolator: PercolatorState;
   polymarketMarkets: PolymarketMarketSnapshot[];
+  runtime: ReturnType<typeof getTianshiRuntimeControl>;
+  simChain: ReturnType<typeof getSimChainSummary>;
+};
+
+type TianezhaChatPayload = {
+  opportunities: ReturnType<typeof buildTianezhaOpportunities>["opportunities"];
+  quests: ReturnType<typeof buildTianezhaOpportunities>["quests"];
+  reply: string;
+  runtime: HeartbeatState["runtime"];
+  simChain: SimChainSummary;
+};
+
+type TianezhaChatContext = {
+  gendelve: GenDelveState;
+  heartbeat: HeartbeatState;
+  loadedIdentity: LoadedIdentity | null;
+  nezha: NezhaState;
+  simChain: SimChainSummary;
+  tianzi: TianziState;
 };
 
 type RewardDeltaOptions = {
@@ -1680,8 +1708,7 @@ export async function getLoadedIdentityByProfileId(profileId: string) {
     listVerificationEvents(hydratedProfile.id),
     ensureTokenWorlds(),
   ]);
-
-  return {
+  const baseLoadedIdentity = {
     aliases,
     balances,
     benchmarks,
@@ -1701,6 +1728,12 @@ export async function getLoadedIdentityByProfileId(profileId: string) {
       lines: [...PROFILE_WALL_DISCLAIMER.lines],
       title: PROFILE_WALL_DISCLAIMER.title,
     },
+  } satisfies LoadedIdentity;
+  const walletHermesAgent = await ensureWalletHermesAgent(hydratedProfile, baseLoadedIdentity);
+
+  return {
+    ...baseLoadedIdentity,
+    walletHermesAgent,
   } satisfies LoadedIdentity;
 }
 
@@ -1910,6 +1943,7 @@ export async function loadOrCreateIdentity(input: string) {
     ensureRewardLedger(profile.id),
     ensureRewardUnlock(profile.id),
     syncHumanBitClawProfile(profile),
+    ensureWalletHermesAgent(profile),
   ]);
 
   const cookie = await setLoadedIdentityCookie(profile.id);
@@ -2367,8 +2401,36 @@ async function refreshRewardSnapshots(snapshot: Heartbeat42Snapshot) {
   }
 }
 
+async function getLatestHeartbeatSnapshot() {
+  const snapshots = await simList<Heartbeat42Snapshot>(FIRESTORE_SIM_COLLECTIONS.heartbeatTicks);
+
+  return snapshots
+    .slice()
+    .sort((left, right) => right.tickStartAt.localeCompare(left.tickStartAt))[0] ?? null;
+}
+
+function buildPausedHeartbeatSnapshot(date = new Date()) {
+  const tickStartAt = toIsoMinute(getMinuteBucket(date));
+
+  return {
+    activeAgentIds: [],
+    createdAt: nowIso(),
+    eligiblePostAgentIds: [],
+    id: "heartbeat:paused",
+    maskAssignments: {},
+    merkleRoot: createMerkleRoot("heartbeatActiveSet", ["tianshi-paused"]),
+    tickMinute: getMinuteBucket(date),
+    tickStartAt,
+  } satisfies Heartbeat42Snapshot;
+}
+
 export async function ensureHeartbeatSnapshot(date = new Date()) {
   await Promise.all([ensureRaAgents(), ensureRaMasks()]);
+  const runtime = getTianshiRuntimeControl();
+
+  if (!runtime.simulationEnabled) {
+    return (await getLatestHeartbeatSnapshot()) || buildPausedHeartbeatSnapshot(date);
+  }
 
   const minuteBucket = getMinuteBucket(date);
   const snapshotId = `heartbeat:${minuteBucket}`;
@@ -2447,6 +2509,7 @@ export async function ensureHeartbeatSnapshot(date = new Date()) {
 
 export async function getHeartbeatState() {
   await warmHyperliquidAgentAbility().catch(() => null);
+  const runtime = getTianshiRuntimeControl();
   const snapshot = await ensureHeartbeatSnapshot();
   const [agents, masks, profiles, merkleSnapshots, recentFeed, wallets, calls, polymarketMarkets] = await Promise.all([
     simList<RAAgentIdentity>(FIRESTORE_SIM_COLLECTIONS.raAgents),
@@ -2489,6 +2552,10 @@ export async function getHeartbeatState() {
       .slice(0, 18),
     polymarketMarkets,
     recentFeed,
+    runtime: {
+      note: runtime.note,
+      simulationEnabled: runtime.simulationEnabled,
+    },
     snapshot,
   } satisfies HeartbeatState;
 }
@@ -3489,6 +3556,8 @@ export async function getTianshiDiagnosticsState() {
   const hyperliquid = getHyperliquidAgentStatus();
   const polymarket = getPolymarketAgentStatus();
   const reportCommerce = getAutonomousReportCommercePolicy();
+  const runtime = getTianshiRuntimeControl();
+  const simChain = getSimChainSummary();
 
   return {
     agentAbilities: [
@@ -3592,22 +3661,52 @@ export async function getTianshiDiagnosticsState() {
       .slice(0, 12),
     percolator,
     polymarketMarkets: polymarketMarkets.slice(0, 8),
+    runtime,
+    simChain,
   };
 }
 
-export async function buildTianezhaChatReply(message: string) {
-  const normalized = message.trim().toLowerCase();
+async function buildTianezhaChatContext(): Promise<TianezhaChatContext> {
   await warmHyperliquidAgentAbility().catch(() => null);
-  const [loadedIdentity, tianzi, nezha, heartbeat] = await Promise.all([
+  const [loadedIdentity, tianzi, nezha, heartbeat, gendelve] = await Promise.all([
     getCurrentLoadedIdentity(),
     getTianziState(),
     getNezhaState(),
     getHeartbeatState(),
+    getGenDelveState(),
   ]);
+
+  return {
+    gendelve,
+    heartbeat,
+    loadedIdentity,
+    nezha,
+    simChain: getSimChainSummary(),
+    tianzi,
+  };
+}
+
+export async function buildTianezhaChatReply(
+  message: string,
+  context?: TianezhaChatContext,
+) {
+  const normalized = message.trim().toLowerCase();
+  const resolvedContext = context || (await buildTianezhaChatContext());
+  const { loadedIdentity, tianzi, nezha, heartbeat, gendelve, simChain } = resolvedContext;
+  const { opportunities, quests } = buildTianezhaOpportunities({
+    gendelve,
+    heartbeat,
+    loadedIdentity,
+    nezha,
+    tianzi,
+  });
   const gmgn = getGmgnStatus();
   const hyperliquid = getHyperliquidAgentStatus();
 
-  if ((normalized.includes("gmgn") || normalized.includes("hyperliquid") || normalized.includes("perp")) && !loadedIdentity) {
+  if (
+    (normalized.includes("gmgn") || normalized.includes("hyperliquid") || normalized.includes("perp")) &&
+    !loadedIdentity
+  ) {
     if (normalized.includes("hyperliquid") || normalized.includes("perp")) {
       return hyperliquid.enabled
         ? `Hyperliquid perps are exposed through Tianshi's shared lane at ${hyperliquid.apiUrl}. Info surface: ${hyperliquid.infoReady ? "ready" : "waiting on probe"}. ${hyperliquid.livePerpsEnabled ? "The shared API wallet is approved and live perp routing is enabled." : hyperliquid.apiWalletApproved ? "The shared API wallet is approved, but live perp routing is still gated." : "Live perp routing is still gated until the shared API wallet is approved."} Load a profile if you want holder-tick or cockpit guidance for a specific wallet.`
@@ -3620,7 +3719,8 @@ export async function buildTianezhaChatReply(message: string) {
   }
 
   if (!loadedIdentity) {
-    return "Load an address or registry name first. Once a profile is loaded, I can explain the two token worlds, the active prediction question, your reward lock state, and the current Nezha mark prices.";
+    const firstOpportunity = opportunities[0];
+    return `${buildWalletHermesIntro(null)} ${firstOpportunity ? `${firstOpportunity.title}: ${firstOpportunity.description}` : "Load an address to unlock the live opportunity board."}`;
   }
 
   if (normalized.includes("gmgn")) {
@@ -3640,8 +3740,8 @@ export async function buildTianezhaChatReply(message: string) {
 
   if (normalized.includes("reward") || normalized.includes("claim")) {
     return loadedIdentity.rewardUnlock.claimsUnlocked
-      ? `Claims are unlocked for ${loadedIdentity.profile.displayName}. Available rewards: ${loadedIdentity.rewardLedger.availableRewards.toFixed(2)}.`
-      : `Rewards are still locked for ${loadedIdentity.profile.displayName}. Use a verified GenDelve vote or a profile-owner challenge to unlock ${loadedIdentity.rewardLedger.lockedRewards.toFixed(2)} locked rewards.`;
+      ? `Claims are unlocked for ${loadedIdentity.profile.displayName}. Available rewards: ${loadedIdentity.rewardLedger.availableRewards.toFixed(2)}. Every block splits ${Math.round(simChain.proofOfStakeShare * 100)}% to Solana and BNB holders by holding share and ${Math.round(simChain.userRewardShare * 100)}% to participation lanes like predictions, Nezha, governance, good data, and Proof of Loss.`
+      : `Rewards are still locked for ${loadedIdentity.profile.displayName}. Use a verified GenDelve vote or a profile-owner challenge to unlock ${loadedIdentity.rewardLedger.lockedRewards.toFixed(2)} locked rewards. Block rewards still split ${Math.round(simChain.proofOfStakeShare * 100)}% to holder stake and ${Math.round(simChain.userRewardShare * 100)}% to active user participation.`;
   }
 
   if (normalized.includes("deploy") || normalized.includes("holder tick")) {
@@ -3659,7 +3759,10 @@ export async function buildTianezhaChatReply(message: string) {
 
   if (normalized.includes("perp") || normalized.includes("nezha")) {
     const marketLine = nezha.markets
-      .map((market) => `${market.title}: mark $${market.markPrice.toFixed(4)}, funding ${(market.fundingRateHourly * 100).toFixed(2)}%/hr`)
+      .map(
+        (market) =>
+          `${market.title}: mark $${market.markPrice.toFixed(4)}, funding ${(market.fundingRateHourly * 100).toFixed(2)}%/hr`,
+      )
       .join(" | ");
     return hyperliquid.enabled
       ? `Nezha still mirrors liquidation and funding locally for simulation, while agents inherit Hyperliquid perp market access through Tianshi at ${hyperliquid.apiUrl}. ${hyperliquid.livePerpsEnabled ? "The shared API wallet lane is live." : "The shared API wallet lane is still gated."} ${marketLine}`
@@ -3667,10 +3770,53 @@ export async function buildTianezhaChatReply(message: string) {
   }
 
   if (normalized.includes("heartbeat") || normalized.includes("agent")) {
-    return `Heartbeat currently leases exactly ${heartbeat.snapshot.activeAgentIds.length} RA agents. The active masks rotate every 10 minutes, and the current Merkle root is ${heartbeat.snapshot.merkleRoot.slice(0, 16)}...`;
+    return heartbeat.runtime.simulationEnabled
+      ? `Heartbeat currently leases exactly ${heartbeat.snapshot.activeAgentIds.length} RA agents. The active masks rotate every 10 minutes, and the current Merkle root is ${heartbeat.snapshot.merkleRoot.slice(0, 16)}...`
+      : "Tianshi is paused right now. The public brain stays frozen until the hidden admin enables it, so no live heartbeat posts or rotations run during the pause.";
   }
 
-  return `Loaded profile: ${loadedIdentity.profile.displayName} on ${loadedIdentity.profile.chain}. Current prompt: "${tianzi.question.title}". Nezha is tracking ${nezha.markets.length} simulation markets, and Heartbeat has ${heartbeat.snapshot.activeAgentIds.length} active agents right now.`;
+  if (
+    normalized.includes("next") ||
+    normalized.includes("opportun") ||
+    normalized.includes("what should i do") ||
+    normalized.includes("teach") ||
+    normalized.includes("learn") ||
+    normalized.includes("quest")
+  ) {
+    const primaryOpportunity = opportunities[0];
+    const primaryQuest = quests.find((quest) => quest.status === "live") || quests[0];
+
+    return `${loadedIdentity.profile.displayName} is loaded as ${loadedIdentity.profile.simulationHandle}. ${primaryOpportunity ? `${primaryOpportunity.title}: ${primaryOpportunity.description}` : "No live opportunity card is open yet."} ${primaryQuest ? `Quest live: ${primaryQuest.title}. ${primaryQuest.description} Reward: ${primaryQuest.rewardHint}.` : ""} ${heartbeat.runtime.simulationEnabled ? "Tianshi is live, so the chat can keep pushing new calls into the left panel." : "Tianshi is paused, so play surfaces stay in BitClaw, Tianzi, Nezha, and GenDelve until the admin enables the live brain again."}`;
+  }
+
+  if (normalized.includes("badge") || normalized.includes("perk") || normalized.includes("rpg")) {
+    const activeQuestCount = quests.filter((quest) => quest.status === "live").length;
+    return `Tianezha treats this wallet like a character sheet. BitClaw tracks rewards, rank, streaks, badges, and training quests. Right now ${activeQuestCount} quest lanes are live for ${loadedIdentity.profile.displayName}, and the left-panel chat can route you into Tianzi, Nezha, BitClaw posting, or GenDelve when a perk or milestone becomes reachable.`;
+  }
+
+  if (normalized.includes("tianshi") || normalized.includes("brain")) {
+    return heartbeat.runtime.simulationEnabled
+      ? "Tianshi is live. It narrates the current world stance, the active 42-agent heartbeat, the mask rotation, and the social pulse without turning the public surface into a diagnostics wall."
+      : "Tianshi is paused by default until the hidden admin enables it. The page stays readable and public, but no live heartbeat publishing, RA posting, or runtime settlement runs during the pause.";
+  }
+
+  const primaryOpportunity = opportunities[0];
+  return `Loaded profile: ${loadedIdentity.profile.displayName} on ${loadedIdentity.profile.chain}. Current Tianzi question: "${tianzi.question.title}". Nezha is tracking ${nezha.markets.length} simulation markets. ${heartbeat.runtime.simulationEnabled ? `Tianshi has ${heartbeat.snapshot.activeAgentIds.length} active agents right now.` : "Tianshi is currently paused."} ${primaryOpportunity ? `Best next move: ${primaryOpportunity.title}.` : ""}`;
+}
+
+export async function buildTianezhaChatPayload(message?: string): Promise<TianezhaChatPayload> {
+  const context = await buildTianezhaChatContext();
+  const opportunityState = buildTianezhaOpportunities(context);
+
+  return {
+    opportunities: opportunityState.opportunities,
+    quests: opportunityState.quests,
+    reply: message?.trim()
+      ? await buildTianezhaChatReply(message, context)
+      : buildWalletHermesIntro(context.loadedIdentity),
+    runtime: context.heartbeat.runtime,
+    simChain: context.simChain,
+  };
 }
 
 let heartbeatLoopStarted = false;

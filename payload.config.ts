@@ -4,21 +4,31 @@ import path from "node:path";
 import { sqliteAdapter } from "@payloadcms/db-sqlite";
 import { buildConfig } from "payload";
 
+import {
+  getNamespacedFilePath,
+  getTianezhaDataNamespace,
+} from "./lib/server/data-namespace";
+
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean(req.user);
 
 function resolvePayloadDatabaseUrl() {
-  const defaultDatabaseUrl =
+  const defaultDatabasePath =
     process.env.NODE_ENV === "production"
-      ? "file:/tmp/tianshi-payload.db"
-      : "file:./.data/tianshi-payload.db";
-  const configuredUrl = process.env.PAYLOAD_DATABASE_URL || defaultDatabaseUrl;
+      ? "/tmp/tianshi-payload.db"
+      : "./.data/tianshi-payload.db";
+  const configuredUrl =
+    process.env.PAYLOAD_DATABASE_URL || `file:${defaultDatabasePath}`;
 
   if (!configuredUrl.startsWith("file:")) {
     return configuredUrl;
   }
 
-  const rawPath = configuredUrl.slice("file:".length) || "./.data/tianshi-payload.db";
-  const absolutePath = path.resolve(process.cwd(), rawPath);
+  const rawPath = configuredUrl.slice("file:".length) || defaultDatabasePath;
+  const namespacedPath = getNamespacedFilePath(
+    rawPath,
+    getTianezhaDataNamespace(),
+  );
+  const absolutePath = path.resolve(process.cwd(), namespacedPath);
   mkdirSync(path.dirname(absolutePath), { recursive: true });
 
   return `file:${absolutePath.replace(/\\/g, "/")}`;

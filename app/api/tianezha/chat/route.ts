@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { buildTianezhaChatReply } from "@/lib/server/tianezha-simulation";
+import { buildTianezhaChatPayload } from "@/lib/server/tianezha-simulation";
 
 export async function POST(request: Request) {
   try {
@@ -10,8 +10,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Enter a message." }, { status: 400 });
     }
 
-    const reply = await buildTianezhaChatReply(message);
-    return NextResponse.json({ reply });
+    const response = await buildTianezhaChatPayload(message);
+    return NextResponse.json(response);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to answer right now." },

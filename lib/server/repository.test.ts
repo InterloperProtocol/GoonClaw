@@ -20,6 +20,8 @@ import type { SessionRecord } from "@/lib/types";
 describe("markSessionStopped", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.TIANEZHA_DATA_NAMESPACE = "testnet";
+    process.env.TIANEZHA_FIRESTORE_ROOT_COLLECTION = "tianezhaEnvironments";
     (globalThis as { __tianshiMemory?: unknown }).__tianshiMemory = undefined;
   });
 

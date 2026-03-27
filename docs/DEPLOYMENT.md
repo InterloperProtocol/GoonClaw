@@ -4,6 +4,13 @@
 
 The repository is configured for Firebase App Hosting.
 
+Data separation is now namespace-based:
+
+- local development and test default to `TIANEZHA_DATA_NAMESPACE=testnet`
+- App Hosting production is pinned to `TIANEZHA_DATA_NAMESPACE=mainnet`
+- Firestore data is stored under `tianezhaEnvironments/{namespace}/...`
+- Payload SQLite files are namespaced per environment so testnet writes never reuse the mainnet database file
+
 Relevant files:
 
 - `firebase.json`
@@ -29,8 +36,9 @@ Additional backends listed in Firebase config:
 4. Run `npm test`.
 5. Run `npm run build` with production-safe env values available.
 6. Verify App Hosting secrets are present.
-7. Commit and push the branch you want to release.
-8. Deploy through Firebase App Hosting.
+7. Verify `TIANEZHA_DATA_NAMESPACE` points at the intended lane before release.
+8. Commit and push the branch you want to release.
+9. Deploy through Firebase App Hosting.
 
 ## Required Secrets And Runtime Values
 
@@ -80,6 +88,7 @@ firebase deploy --only apphosting:tianshi
 ```
 
 If multiple environments/backends are active, verify the correct project and backend before deploying.
+For Tianezha production, the intended backend stays on `mainnet`; ongoing QA and regression data should remain in the `testnet` namespace until mainnet launch is ready to become the source of truth.
 
 ## Known Warnings
 

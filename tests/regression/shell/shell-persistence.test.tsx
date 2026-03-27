@@ -30,10 +30,16 @@ describe("shell persistence and Tianezha chatbot context", () => {
         method: "POST",
       }),
     );
-    const payload = (await response.json()) as { reply: string };
+    const payload = (await response.json()) as {
+      opportunities?: Array<{ title: string }>;
+      quests?: Array<{ title: string }>;
+      reply: string;
+    };
 
-    expect(railHtml).toContain("Ask how Tianezha works");
-    expect(payload.reply).toContain("Load an address or registry name first.");
+    expect(railHtml).toContain("Wallet loader");
+    expect(railHtml).toContain("Enter the world");
+    expect(payload.reply).toContain("Enter a wallet address and I'll load your character.");
+    expect(payload.opportunities?.length).toBeGreaterThan(0);
   });
 
   it("keeps one loaded identity synchronized across BitClaw, BolClaw, Tianzi, Nezha, Tianshi, and GenDelve", async () => {
@@ -71,13 +77,13 @@ describe("shell persistence and Tianezha chatbot context", () => {
     const gendelveHtml = renderHtml(await GenDelvePage());
 
     expect(railHtml).toContain(loaded.profile.displayName);
-    expect(railHtml).toContain("Ask about your loaded world");
+    expect(railHtml).toContain("Wallet-Hermes");
     expect(bitclawHtml).toContain("Persistent world post.");
     expect(bitclawHtml).toContain("1 positions");
     expect(bolclawHtml).toContain("Persistent world post.");
     expect(tianziHtml).toContain(tianzi.question.title);
     expect(nezhaHtml).toContain("Open positions");
-    expect(tianshiHtml).toContain("42 live simulated agents");
+    expect(tianshiHtml).toContain("Paused by default");
     expect(gendelveHtml).toContain("GenDelve");
   });
 

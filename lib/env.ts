@@ -2,6 +2,11 @@ import { z } from "zod";
 
 import { CONSTITUTION } from "@/lib/constitution";
 import {
+  getNamespacedFilePath,
+  resolveTianezhaDataNamespace,
+  resolveTianezhaFirestoreRootCollection,
+} from "@/lib/server/data-namespace";
+import {
   DEFAULT_ACCESS_TOKEN_SYMBOL,
   DEFAULT_PUMP_TOKEN_MINT,
 } from "@/lib/token-defaults";
@@ -14,6 +19,8 @@ const rawServerEnvSchema = z.object({
   DEVICE_CREDENTIALS_AES_KEY: z.string().optional(),
   PAYLOAD_SECRET: z.string().optional(),
   PAYLOAD_DATABASE_URL: z.string().optional(),
+  TIANEZHA_DATA_NAMESPACE: z.string().optional(),
+  TIANEZHA_FIRESTORE_ROOT_COLLECTION: z.string().optional(),
   INTERNAL_ADMIN_LOGIN: z.string().optional(),
   INTERNAL_ADMIN_PASSWORD: z.string().optional(),
   SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).optional(),
@@ -135,6 +142,8 @@ const resolvedServerEnvSchema = z.object({
   DEVICE_CREDENTIALS_AES_KEY: z.string().min(1),
   PAYLOAD_SECRET: z.string().min(1),
   PAYLOAD_DATABASE_URL: z.string().min(1),
+  TIANEZHA_DATA_NAMESPACE: z.string().min(1),
+  TIANEZHA_FIRESTORE_ROOT_COLLECTION: z.string().min(1),
   INTERNAL_ADMIN_LOGIN: z.string().min(1),
   INTERNAL_ADMIN_PASSWORD: z.string(),
   SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]),
@@ -347,6 +356,16 @@ function inferProjectIdFromFirebaseConfig(value: string | undefined) {
 
 function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
   const isProduction = raw.NODE_ENV === "production";
+  const defaultPayloadDatabasePath = isProduction
+    ? "/tmp/tianshi-payload.db"
+    : "./.data/tianshi-payload.db";
+  const dataNamespace = resolveTianezhaDataNamespace(
+    raw.TIANEZHA_DATA_NAMESPACE,
+    raw.NODE_ENV,
+  );
+  const firestoreRootCollection = resolveTianezhaFirestoreRootCollection(
+    raw.TIANEZHA_FIRESTORE_ROOT_COLLECTION,
+  );
   const allowInProcessWorker =
     raw.ALLOW_IN_PROCESS_WORKER ?? (isProduction ? "false" : "true");
   const firebaseConfigProjectId = inferProjectIdFromFirebaseConfig(
@@ -396,8 +415,24 @@ function resolveServerEnv(raw: z.infer<typeof rawServerEnvSchema>) {
       "PAYLOAD_SECRET",
       16,
     ),
-    PAYLOAD_DATABASE_URL:
-      raw.PAYLOAD_DATABASE_URL?.trim() || "file:./.data/tianshi-payload.db",
+    PAYLOAD_DATABASE_URL: (() => {
+      const configuredUrl = raw.PAYLOAD_DATABASE_URL?.trim();
+      if (!configuredUrl) {
+        return `file:${getNamespacedFilePath(
+          defaultPayloadDatabasePath,
+          dataNamespace,
+        )}`;
+      }
+
+      if (!configuredUrl.startsWith("file:")) {
+        return configuredUrl;
+      }
+
+      const filePath = configuredUrl.slice("file:".length) || defaultPayloadDatabasePath;
+      return `file:${getNamespacedFilePath(filePath, dataNamespace)}`;
+    })(),
+    TIANEZHA_DATA_NAMESPACE: dataNamespace,
+    TIANEZHA_FIRESTORE_ROOT_COLLECTION: firestoreRootCollection,
     INTERNAL_ADMIN_LOGIN: raw.INTERNAL_ADMIN_LOGIN?.trim() || "admin",
     INTERNAL_ADMIN_PASSWORD: raw.INTERNAL_ADMIN_PASSWORD?.trim() || "",
     SOLANA_NETWORK: raw.SOLANA_NETWORK ?? "mainnet-beta",

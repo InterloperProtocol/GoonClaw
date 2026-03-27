@@ -47,6 +47,7 @@ export const FIRESTORE_SIM_COLLECTIONS = {
   tokenWorlds: "tokenWorlds",
   userDeployedAgents: "userDeployedAgents",
   verificationEvents: "verificationEvents",
+  walletHermesAgents: "walletHermesAgents",
 } as const;
 
 const timestamp = nowIso();

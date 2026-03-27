@@ -9,6 +9,7 @@ import {
   getBolClawState,
   loadOrCreateIdentity,
 } from "@/lib/server/tianezha-simulation";
+import { setTianshiRuntimeControl } from "@/lib/server/tianshi-runtime-control";
 
 describe("BolClaw social flows", () => {
   it("loads the public feed with or without a profile and keeps the BitClaw source identity obvious", async () => {
@@ -68,6 +69,11 @@ describe("BolClaw social flows", () => {
   });
 
   it("renders both human and RA-agent profiles in the social world and keeps empty personal history non-breaking", async () => {
+    setTianshiRuntimeControl({
+      lastChangedBy: "vitest",
+      note: "Enabled for BolClaw social regression.",
+      simulationEnabled: true,
+    });
     const loaded = await loadOrCreateIdentity("vitalik.eth");
 
     const state = await getBolClawState();

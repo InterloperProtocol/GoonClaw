@@ -22,6 +22,17 @@ env:
     availability:
       - RUNTIME
 
+  - variable: TIANEZHA_DATA_NAMESPACE
+    value: "mainnet"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: TIANEZHA_FIRESTORE_ROOT_COLLECTION
+    value: "tianezhaEnvironments"
+    availability:
+      - RUNTIME
+
   - variable: VERTEX_AI_PROJECT_ID
     value: "tianezha-app"
     availability:
