@@ -8,10 +8,18 @@ type Message = {
 };
 
 type TianezhaChatClientProps = {
+  heading?: string;
   initialMessage: string;
+  placeholder?: string;
+  variant?: "default" | "rail";
 };
 
-export function TianezhaChatClient({ initialMessage }: TianezhaChatClientProps) {
+export function TianezhaChatClient({
+  heading = "Ask Tianezha what the world sees",
+  initialMessage,
+  placeholder = "What is live right now?",
+  variant = "default",
+}: TianezhaChatClientProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       content: initialMessage,
@@ -52,11 +60,17 @@ export function TianezhaChatClient({ initialMessage }: TianezhaChatClientProps) 
   }
 
   return (
-    <section className="panel chat-shell-panel">
+    <section
+      className={
+        variant === "rail"
+          ? "panel chat-shell-panel chat-shell-panel-rail"
+          : "panel chat-shell-panel"
+      }
+    >
       <div className="panel-header">
         <div>
           <p className="eyebrow">Tianezha chat</p>
-          <h2>Ask the shell what the simulation sees</h2>
+          <h2>{heading}</h2>
         </div>
       </div>
       <div className="chat-shell-feed">
@@ -65,7 +79,7 @@ export function TianezhaChatClient({ initialMessage }: TianezhaChatClientProps) 
             key={`${message.role}-${index}`}
             className={message.role === "assistant" ? "chat-bubble assistant" : "chat-bubble user"}
           >
-            <span>{message.role}</span>
+            <span>{message.role === "assistant" ? "Tianezha" : "You"}</span>
             <p>{message.content}</p>
           </article>
         ))}
@@ -75,7 +89,7 @@ export function TianezhaChatClient({ initialMessage }: TianezhaChatClientProps) 
           <span>Message</span>
           <textarea
             onChange={(event) => setValue(event.target.value)}
-            placeholder="What is live right now?"
+            placeholder={placeholder}
             value={value}
           />
         </label>

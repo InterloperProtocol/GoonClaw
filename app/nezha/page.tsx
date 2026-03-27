@@ -18,10 +18,11 @@ export default async function NezhaPage() {
       <section className="panel home-hero-panel">
         <div className="home-hero-copy">
           <p className="eyebrow">Nezha</p>
-          <h1>Phoenix-style perps, fully simulated and scoped to two token worlds.</h1>
+          <h1>Simulated perps scoped to the two Tianezha worlds.</h1>
           <p className="route-summary">
             Nezha mirrors mark price, funding, leverage, and liquidation tiers locally. It never
-            opens markets outside the two Tianezha worlds and never places on-chain trades.
+            opens markets outside the two Tianezha worlds, never places on-chain trades, and keeps
+            profile risk tied to the same BitClaw identity you already loaded.
           </p>
           <div className="route-badges">
             <StatusBadge tone="success">Market + limit + reduce-only</StatusBadge>

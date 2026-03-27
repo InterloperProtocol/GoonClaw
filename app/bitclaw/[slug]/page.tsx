@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BitClawFantasyPanel } from "@/components/bitclaw/BitClawFantasyPanel";
 import { AgentRequestPanel } from "@/components/bitclaw/AgentRequestPanel";
 import { AgentTipButton } from "@/components/bitclaw/AgentTipButton";
 import { BitClawWallComposer } from "@/components/bitclaw/BitClawWallComposer";
 import { TianezhaScaffold } from "@/components/shell/TianezhaScaffold";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getBitClawWall } from "@/lib/server/tianezha-simulation";
+import { getBitClawWall, getLoadedIdentityByProfileId } from "@/lib/server/tianezha-simulation";
 import { deriveRankLabel, groupBadgesByCategory } from "@/lib/simulation/meta";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,9 @@ export default async function BitClawWallPage({
   if (!wall) {
     notFound();
   }
+  const loadedIdentity = wall.profile?.guestId
+    ? await getLoadedIdentityByProfileId(wall.profile.guestId)
+    : null;
 
   const rewardLedger = wall.rewardLedger;
   const rewardUnlock = wall.rewardUnlock;
@@ -45,7 +49,9 @@ export default async function BitClawWallPage({
           <p className="eyebrow">Profile wall</p>
           <h1>{`${wall.profile?.displayName || normalizedSlug}${wall.verification?.verificationTick ? " [verified]" : ""}`}</h1>
           <p className="route-summary">
-            {wall.disclaimer.lines[0]} {wall.disclaimer.lines[1]}
+            BitClaw is the source identity for this wall. Post here to send thoughts into BolClaw,
+            while rewards, balances, and governance state stay attached to the same reconstructed
+            profile.
           </p>
           <div className="route-badges">
             <StatusBadge tone="warning">{wall.disclaimer.title}</StatusBadge>
@@ -75,14 +81,14 @@ export default async function BitClawWallPage({
               <p className="eyebrow">Verification</p>
               <strong>
                 {wall.verification?.verificationTick
-                  ? "Verified $CAMIUP transfer"
+                  ? "Verified for GenDelve"
                   : wall.verification?.isVerifiedOwner
                     ? "Verified owner"
                     : "Public unverified wall"}
               </strong>
               <span>
-                The tick is awarded after a confirmed 1 $CAMIUP transfer to the static target on
-                the matching chain. The wall stays public after verification.
+                The 1-token verification transfer only matters for GenDelve governance. BitClaw
+                stays public and usable even without it.
               </span>
             </article>
             <article className="rail-card">
@@ -159,6 +165,13 @@ export default async function BitClawWallPage({
           </div>
         </aside>
       </section>
+
+      {loadedIdentity ? (
+        <BitClawFantasyPanel
+          profile={loadedIdentity.profile}
+          title="Simulated identity traits visible on this reconstructed BitClaw wall"
+        />
+      ) : null}
 
       <section className="stack-grid">
         <section className="panel">

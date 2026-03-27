@@ -61,6 +61,26 @@ export interface ProfileWallDisclaimer {
   title: string;
 }
 
+export interface SimulatedAvatarProfile {
+  background: string;
+  foreground: string;
+  label: string;
+  sigil: string;
+}
+
+export interface SimulatedPersonalityProfile {
+  archetype: string;
+  summary: string;
+  traits: string[];
+}
+
+export interface SimulatedQnft {
+  id: string;
+  label: string;
+  lore: string;
+  rarity: "common" | "uncommon" | "rare" | "legendary";
+}
+
 export interface IdentityProfile {
   avatarSeed: string;
   badges: string[];
@@ -76,6 +96,10 @@ export interface IdentityProfile {
   publicLabel: string;
   rank: number;
   simulationHandle: string;
+  // Fantasy-layer identity traits are simulated and never represent live custody assets.
+  simulatedAvatar: SimulatedAvatarProfile;
+  simulatedPersonality: SimulatedPersonalityProfile;
+  simulatedQnfts: SimulatedQnft[];
   sourceKind: IdentitySourceKind;
   updatedAt: string;
   walletAddress: string;

@@ -18,11 +18,11 @@ export default async function TianziPage() {
       <section className="panel home-hero-panel">
         <div className="home-hero-copy">
           <p className="eyebrow">Tianzi</p>
-          <h1>One global prediction question every ten minutes.</h1>
+          <h1>Prediction and futarchy markets for the two Tianezha worlds.</h1>
           <p className="route-summary">
             Tianzi borrows binary-market structure from Polymarket, but every question, share,
-            fill, and resolution lives locally inside Tianezha. Resolution comes only from the
-            real chart close.
+            fill, and resolution lives locally inside Tianezha. The final world score always stays
+            exact: 0.42 governance share, 0.42 futarchy share, and 0.16 revenue share.
           </p>
           <div className="route-badges">
             <StatusBadge tone="success">Auto-resolution</StatusBadge>
@@ -61,8 +61,8 @@ export default async function TianziPage() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">World reference</p>
-              <h2>Current world prices</h2>
+              <p className="eyebrow">Hybrid futarchy</p>
+              <h2>Current world prices under the shared score formula</h2>
             </div>
           </div>
           <div className="mini-list">
@@ -72,7 +72,9 @@ export default async function TianziPage() {
                   <span>{world.questionPromptLabel}</span>
                   <strong>{formatUsd(priceUsd)}</strong>
                 </div>
-                <p className="route-summary compact">{world.displayName}</p>
+                <p className="route-summary compact">
+                  {world.displayName}. FinalScore = 0.42 governance + 0.42 futarchy + 0.16 revenue.
+                </p>
               </article>
             ))}
           </div>

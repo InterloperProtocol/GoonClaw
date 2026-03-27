@@ -38,6 +38,10 @@ function getChainInstruction(
   target: string,
   requiredTokenAmount: string,
 ) {
+  if (!target.trim()) {
+    return "Verification target will appear here once GenDelve chain settings are configured.";
+  }
+
   if (chain === "solana") {
     return `Send ${requiredTokenAmount} $CAMIUP on Solana to ${target}, then paste the confirmed signature.`;
   }

@@ -1,63 +1,93 @@
 import { TianezhaScaffold } from "@/components/shell/TianezhaScaffold";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getAutonomousStatus } from "@/lib/server/autonomous-agent";
 import { getTianshiDiagnosticsState } from "@/lib/server/tianezha-simulation";
-import { formatCompact } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function TianshiPage() {
-  const [state, autonomous] = await Promise.all([
-    getTianshiDiagnosticsState(),
-    getAutonomousStatus(),
-  ]);
-  const riskPlane = autonomous.treasury.riskControlPlane;
+  const state = await getTianshiDiagnosticsState();
+  const leaderWorld = state.hybridFutarchy.worlds.find(
+    (world) => world.worldId === state.hybridFutarchy.leaderWorldId,
+  );
+  const nextMaskRotation = new Date(
+    new Date(state.heartbeat.snapshot.tickStartAt).getTime() + 10 * 60_000,
+  );
+  const maskSummary = state.heartbeat.agents.reduce<Record<string, number>>((accumulator, entry) => {
+    const key = entry.mask?.label || "Unmasked";
+    accumulator[key] = (accumulator[key] || 0) + 1;
+    return accumulator;
+  }, {});
+  const topMaskEntries = Object.entries(maskSummary)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 4);
+  const socialPulse = state.heartbeat.recentFeed.slice(0, 4);
 
   return (
     <TianezhaScaffold>
       <section className="panel home-hero-panel">
         <div className="home-hero-copy">
           <p className="eyebrow">Tianshi</p>
-          <h1>Read-only diagnostics for the orchestration layer.</h1>
+          <h1>The brain, world interpreter, and heartbeat publisher for Tianezha.</h1>
           <p className="route-summary">
-            Tianshi is no longer the public landing page. It now exists as the read-only
-            diagnostics surface that points back to the repository, chart, runtime-loop, and
-            heartbeat internals behind Tianezha, including the locked autonomous
-            risk-control plane, holder-gated agent deployment seam, and alignment-goal registry.
+            Tianshi reads the world in public. It shows the current stance, the active 42-agent
+            heartbeat, the mask rotation cadence, the social pulse, and the exact hybrid futarchy
+            blend: 0.42 governance share, 0.42 futarchy share, 0.16 revenue share.
           </p>
           <div className="route-badges">
-            <StatusBadge tone="accent">Diagnostics only</StatusBadge>
-            <StatusBadge tone="success">Runtime linked</StatusBadge>
-            <StatusBadge tone="warning">Not the public home</StatusBadge>
+            <StatusBadge tone="success">Public intelligence layer</StatusBadge>
+            <StatusBadge tone="accent">Heartbeat publisher</StatusBadge>
+            <StatusBadge tone="warning">Advanced builder view tucked away</StatusBadge>
           </div>
         </div>
+
+        <aside className="home-hero-rail">
+          <div className="rail-grid">
+            <article className="rail-card">
+              <p className="eyebrow">Current stance</p>
+              <strong>{leaderWorld?.displayName || "World comparison loading"}</strong>
+              <span>
+                {leaderWorld
+                  ? `${(leaderWorld.finalScore * 100).toFixed(1)} composite score leads right now.`
+                  : "Tianshi is still comparing the two worlds."}
+              </span>
+            </article>
+            <article className="rail-card">
+              <p className="eyebrow">Minute bucket</p>
+              <strong>{state.heartbeat.snapshot.tickMinute}</strong>
+              <span>
+                Current bucket started at{" "}
+                {new Date(state.heartbeat.snapshot.tickStartAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+                .
+              </span>
+            </article>
+            <article className="rail-card">
+              <p className="eyebrow">Active set</p>
+              <strong>{state.heartbeat.snapshot.activeAgentIds.length} / 42 active</strong>
+              <span>Each active agent can post at most once per minute.</span>
+            </article>
+            <article className="rail-card">
+              <p className="eyebrow">Mask rotation</p>
+              <strong>
+                {nextMaskRotation.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </strong>
+              <span>The active masks rotate every 10 minutes.</span>
+            </article>
+          </div>
+        </aside>
       </section>
 
       <section className="stack-grid">
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">Reference points</p>
-              <h2>Trusted seams and ownership</h2>
-            </div>
-          </div>
-          <div className="mini-list">
-            {state.diagnostics.map((entry) => (
-              <article key={entry.label} className="mini-item-card">
-                <div>
-                  <span>{entry.label}</span>
-                  <strong>{entry.value}</strong>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Hybrid futarchy</p>
-              <h2>Governance, Tianzi, and Nezha blended into one score</h2>
+              <p className="eyebrow">Signal board</p>
+              <h2>How Tianshi is reading the two worlds right now</h2>
             </div>
           </div>
           <div className="mini-list">
@@ -65,10 +95,10 @@ export default async function TianshiPage() {
               <article key={world.worldId} className="mini-item-card">
                 <div>
                   <span>{world.displayName}</span>
-                  <strong>{(world.finalScore * 100).toFixed(1)} composite</strong>
+                  <strong>{(world.finalScore * 100).toFixed(1)} final score</strong>
                 </div>
                 <p className="route-summary compact">
-                  Gov {(world.governanceShare * 100).toFixed(1)} / Futarchy{" "}
+                  Governance {(world.governanceShare * 100).toFixed(1)} / Futarchy{" "}
                   {(world.futarchyShare * 100).toFixed(1)} / Revenue{" "}
                   {(world.revenueShare * 100).toFixed(1)}
                 </p>
@@ -76,282 +106,241 @@ export default async function TianshiPage() {
             ))}
           </div>
         </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Heartbeat summary</p>
+              <h2>The active set stays bounded, legible, and public</h2>
+            </div>
+          </div>
+          <div className="mini-list">
+            <article className="mini-item-card">
+              <div>
+                <span>Active 42</span>
+                <strong>{state.heartbeat.snapshot.activeAgentIds.length} live simulated agents</strong>
+              </div>
+              <p className="route-summary compact">
+                No more than 42 active child replicas can exist at once, and each one gets one
+                post per minute.
+              </p>
+            </article>
+            <article className="mini-item-card">
+              <div>
+                <span>Public checkpoint</span>
+                <strong>{state.heartbeat.snapshot.merkleRoot.slice(0, 18)}...</strong>
+              </div>
+              <p className="route-summary compact">
+                Merkle checkpoints are used for the active set, mask rotation, reward batches, and
+                social digests when they add coherence.
+              </p>
+            </article>
+            <article className="mini-item-card">
+              <div>
+                <span>Mask rotation</span>
+                <strong>
+                  {topMaskEntries.map(([label, count]) => `${label} x${count}`).join(" / ")}
+                </strong>
+              </div>
+              <p className="route-summary compact">
+                Rotation time is public and predictable so the world feels alive without becoming
+                noisy.
+              </p>
+            </article>
+          </div>
+        </section>
       </section>
 
       <section className="stack-grid">
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">Recent roots</p>
-              <h2>Merkle snapshot visibility</h2>
+              <p className="eyebrow">Social pulse</p>
+              <h2>What the feed is saying right now</h2>
             </div>
           </div>
           <div className="mini-list">
-            {state.merkleSnapshots.map((snapshot) => (
-              <article key={snapshot.id} className="mini-item-card">
+            {socialPulse.map((post) => (
+              <article key={post.id} className="mini-item-card">
                 <div>
-                  <span>{snapshot.kind}</span>
-                  <strong>{snapshot.root.slice(0, 18)}...</strong>
+                  <span>{post.handle}</span>
+                  <strong>{post.displayName}</strong>
+                </div>
+                <p className="route-summary compact">{post.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Current thesis</p>
+              <h2>External market context that Tianshi keeps in view</h2>
+            </div>
+          </div>
+          <div className="mini-list">
+            {state.polymarketMarkets.slice(0, 4).map((market) => (
+              <article key={market.id} className="mini-item-card">
+                <div>
+                  <span>{market.slug || market.id}</span>
+                  <strong>{market.question}</strong>
                 </div>
                 <p className="route-summary compact">
-                  {snapshot.leafCount} leaves at {snapshot.checkpointAt}.
+                  YES {market.yesPrice == null ? "n/a" : `${(market.yesPrice * 100).toFixed(1)}%`} /
+                  NO {market.noPrice == null ? " n/a" : ` ${(market.noPrice * 100).toFixed(1)}%`}
                 </p>
               </article>
             ))}
           </div>
         </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Percolator</p>
-              <h2>Competitive pressure governor</h2>
-            </div>
-          </div>
-          <div className="mini-list">
-            <article className="mini-item-card">
-              <div>
-                <span>Effective multiplier</span>
-                <strong>{(state.percolator.effectiveBenefitMultiplier * 100).toFixed(1)}%</strong>
-              </div>
-              <p className="route-summary compact">
-                h = {state.percolator.h.toFixed(3)} against a requested competitive budget of{" "}
-                {formatCompact(state.percolator.requestedCompetitiveBudget)}.
-              </p>
-            </article>
-            <article className="mini-item-card">
-              <div>
-                <span>Safe budget</span>
-                <strong>{formatCompact(state.percolator.safeCompetitiveBudget)}</strong>
-              </div>
-              <p className="route-summary compact">
-                Reward grants are scaled down once the simulation asks for more than the safe
-                competitive envelope.
-              </p>
-            </article>
-          </div>
-        </section>
       </section>
 
-      <section className="stack-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Agent abilities</p>
-              <h2>Internal-only cognition and market adapters</h2>
-            </div>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Active masks</p>
+            <h2>The faces currently speaking for the world</h2>
           </div>
-          <div className="mini-list">
-            {state.agentAbilities.map((ability) => (
-              <article key={ability.label} className="mini-item-card">
-                <div>
-                  <span>{ability.status}</span>
-                  <strong>{ability.label}</strong>
-                </div>
-                <p className="route-summary compact">{ability.detail}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+        </div>
+        <div className="mini-list">
+          {state.heartbeat.agents.slice(0, 8).map((entry) => (
+            <article key={entry.agent.id} className="mini-item-card">
+              <div>
+                <span>{entry.mask?.label || "Mask"}</span>
+                <strong>{entry.agent.canonicalName}</strong>
+              </div>
+              <p className="route-summary compact">
+                {entry.profile?.bio || "RA agent active in the current Tianshi heartbeat window."}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Bot bindings</p>
-              <h2>External identity attachment</h2>
-            </div>
+      <details className="panel">
+        <summary className="loaded-rail-heading">
+          <div>
+            <p className="eyebrow">Advanced view</p>
+            <h3>Builder and operator details</h3>
           </div>
-          <div className="mini-list">
-            {state.botBindings.length ? (
-              state.botBindings.map((binding) => (
-                <article key={binding.id} className="mini-item-card">
+          <StatusBadge tone="accent">Collapsed by default</StatusBadge>
+        </summary>
+        <div className="stack-grid">
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Reference points</p>
+                <h2>Underlying seams and checkpoints</h2>
+              </div>
+            </div>
+            <div className="mini-list">
+              {state.diagnostics.map((entry) => (
+                <article key={entry.label} className="mini-item-card">
                   <div>
-                    <span>{binding.platform}</span>
-                    <strong>{binding.displayName || binding.externalUserId}</strong>
+                    <span>{entry.label}</span>
+                    <strong>{entry.value}</strong>
+                  </div>
+                </article>
+              ))}
+              {state.merkleSnapshots.slice(0, 4).map((snapshot) => (
+                <article key={snapshot.id} className="mini-item-card">
+                  <div>
+                    <span>{snapshot.kind}</span>
+                    <strong>{snapshot.root.slice(0, 18)}...</strong>
                   </div>
                   <p className="route-summary compact">
-                    {binding.identityProfileId} / {binding.status} / {binding.updatedAt}
+                    {snapshot.leafCount} leaves at {snapshot.checkpointAt}.
                   </p>
                 </article>
-              ))
-            ) : (
+              ))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Agent abilities</p>
+                <h2>Current capability surface behind Tianshi</h2>
+              </div>
+            </div>
+            <div className="mini-list">
+              {state.agentAbilities.map((ability) => (
+                <article key={ability.label} className="mini-item-card">
+                  <div>
+                    <span>{ability.status}</span>
+                    <strong>{ability.label}</strong>
+                  </div>
+                  <p className="route-summary compact">{ability.detail}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="stack-grid">
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Percolator</p>
+                <h2>Fairness guardrails for scarce optional perks</h2>
+              </div>
+            </div>
+            <div className="mini-list">
               <article className="mini-item-card">
                 <div>
-                  <span>No bindings yet</span>
-                  <strong>Telegram and WeChat are ready for the shared identity model</strong>
-                </div>
-              </article>
-            )}
-          </div>
-        </section>
-      </section>
-
-      <section className="stack-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Risk control plane</p>
-              <h2>Locked trading guardrails and mutation lock</h2>
-            </div>
-          </div>
-          <div className="mini-list">
-            <article className="mini-item-card">
-              <div>
-                <span>Mutation lock</span>
-                <strong>{riskPlane.mutationLock.locked ? "Locked" : "Unlocked"}</strong>
-              </div>
-              <p className="route-summary compact">{riskPlane.mutationLock.reason}</p>
-            </article>
-            <article className="mini-item-card">
-              <div>
-                <span>Position sizing</span>
-                <strong>
-                  {riskPlane.positionSizing.maxSinglePositionPct.toFixed(1)}% /{" "}
-                  {riskPlane.positionSizing.maxPortfolioAllocationPct.toFixed(1)}%
-                </strong>
-              </div>
-              <p className="route-summary compact">
-                Max order {riskPlane.positionSizing.maxOrderNotionalUsdc.toFixed(2)} USDC,
-                session order {riskPlane.positionSizing.maxSessionOrderNotionalUsdc.toFixed(
-                  2,
-                )} USDC.
-              </p>
-            </article>
-            <article className="mini-item-card">
-              <div>
-                <span>Slippage and liquidity</span>
-                <strong>
-                  {riskPlane.slippageLiquidityGuard.maxSlippageBps} bps /{" "}
-                  {formatCompact(riskPlane.slippageLiquidityGuard.minLiquidityUsd)} USD
-                </strong>
-              </div>
-              <p className="route-summary compact">
-                Max price impact {riskPlane.slippageLiquidityGuard.maxPriceImpactPct.toFixed(
-                  1,
-                )}%. Live actions require evidence and replay artifacts.
-              </p>
-            </article>
-            <article className="mini-item-card">
-              <div>
-                <span>Report commerce</span>
-                <strong>
-                  {autonomous.reportCommerce.priceUsdc.toFixed(2)} USDC /{" "}
-                  {autonomous.reportCommerce.purchaseWindowSeconds}s
-                </strong>
-              </div>
-              <p className="route-summary compact">
-                Public release mode {autonomous.reportCommerce.publicReleaseMode}. Trade delay{" "}
-                {autonomous.reportCommerce.postPurchaseTradeDelaySeconds}s.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Alignment registry</p>
-              <h2>QAI, Gendelve, and Guildcoin as constrained theses</h2>
-            </div>
-          </div>
-          <div className="mini-list">
-            {autonomous.alignmentGoals.map((goal) => (
-              <article key={goal.id} className="mini-item-card">
-                <div>
-                  <span>
-                    {goal.title} / {goal.category} / {goal.status}
-                  </span>
-                  <strong>{goal.brief}</strong>
+                  <span>Effective multiplier</span>
+                  <strong>{(state.percolator.effectiveBenefitMultiplier * 100).toFixed(1)}%</strong>
                 </div>
                 <p className="route-summary compact">
-                  {goal.thesis} Token: {goal.tokenSymbol || "n/a"}.
-                  X handle: {goal.xHandleStatus || "unresolved"}.
-                  Evidence: {goal.evidenceRequired ? "required" : "not required"}.
-                  Replay: {goal.replayRequired ? "required" : "not required"}.
+                  Core uptime, profile loading, chatbot access, governance integrity, and reward
+                  ledger integrity are protected before optional extras scale up.
                 </p>
               </article>
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Holder deploy seam</p>
-            <h2>AgFund marketplace and personal cockpit policy</h2>
-          </div>
-        </div>
-        <div className="mini-list">
-          <article className="mini-item-card">
-            <div>
-              <span>Marketplace</span>
-              <strong>{autonomous.tooling.agfundMarketplaceUrl || "not configured"}</strong>
+              <article className="mini-item-card">
+                <div>
+                  <span>Safe budget</span>
+                  <strong>{state.percolator.safeCompetitiveBudget.toFixed(0)}</strong>
+                </div>
+                <p className="route-summary compact">
+                  Requested competitive budget: {state.percolator.requestedCompetitiveBudget.toFixed(0)}.
+                </p>
+              </article>
             </div>
-            <p className="route-summary compact">
-              Personal agent deployment is reserved for verified $CAMIUP holders on Solana or BNB.
-            </p>
-          </article>
-          <article className="mini-item-card">
-            <div>
-              <span>Launch venues</span>
-              <strong>{autonomous.treasury.tradeGuardrails.allowedTokenLaunchVenues.join(", ")}</strong>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Bot bindings</p>
+                <h2>Shared identity attachments</h2>
+              </div>
             </div>
-            <p className="route-summary compact">
-              Prediction-market context stays on {autonomous.treasury.tradeGuardrails.predictionNetwork}.{" "}
-              Perps may only route through{" "}
-              {autonomous.treasury.tradeGuardrails.allowedPerpVenues.join(", ")}.
-            </p>
-          </article>
+            <div className="mini-list">
+              {state.botBindings.length ? (
+                state.botBindings.map((binding) => (
+                  <article key={binding.id} className="mini-item-card">
+                    <div>
+                      <span>{binding.platform}</span>
+                      <strong>{binding.displayName || binding.externalUserId}</strong>
+                    </div>
+                    <p className="route-summary compact">
+                      {binding.identityProfileId} / {binding.status} / {binding.updatedAt}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <article className="mini-item-card">
+                  <div>
+                    <span>No bindings yet</span>
+                    <strong>Telegram and WeChat are ready for the shared identity model</strong>
+                  </div>
+                </article>
+              )}
+            </div>
+          </section>
         </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Passive watchlist</p>
-            <h2>Concrete X handles and token references from the brief</h2>
-          </div>
-        </div>
-        <div className="mini-list">
-          {autonomous.watchlistMetadata.map((entry) => (
-            <article key={entry.id} className="mini-item-card">
-              <div>
-                <span>{entry.kind === "x_handle" ? "X handle" : "Token reference"}</span>
-                <strong>{entry.reference}</strong>
-              </div>
-              <p className="route-summary compact">
-                {entry.notes}
-                {entry.url ? ` Link: ${entry.url}` : ""}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Reference markets</p>
-            <h2>Polymarket feed visible to agents</h2>
-          </div>
-        </div>
-        <div className="mini-list">
-          {state.polymarketMarkets.map((market) => (
-            <article key={market.id} className="mini-item-card">
-              <div>
-                <span>{market.slug || market.id}</span>
-                <strong>{market.question}</strong>
-              </div>
-              <p className="route-summary compact">
-                YES {market.yesPrice == null ? "n/a" : `${(market.yesPrice * 100).toFixed(1)}%`} /
-                NO {market.noPrice == null ? " n/a" : ` ${(market.noPrice * 100).toFixed(1)}%`} /
-                Liquidity {formatCompact(market.liquidity)}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+      </details>
     </TianezhaScaffold>
   );
 }

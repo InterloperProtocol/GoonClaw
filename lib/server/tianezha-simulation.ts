@@ -115,6 +115,9 @@ import type {
   SimPerpMarket,
   SimPerpOrder,
   SimPerpPosition,
+  SimulatedAvatarProfile,
+  SimulatedPersonalityProfile,
+  SimulatedQnft,
   SimulationBalance,
   TokenWorld,
   VerifiedHolderWorld,
@@ -308,12 +311,177 @@ type RewardDeltaOptions = {
 function getSimulationHandle(label: string) {
   const normalized = label
     .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/\s+/g, "")
+    .replace(/[^a-zA-Z0-9._:-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
-  return `#ID-${normalized.slice(0, 18) || "PROFILE"}`;
+  return `#RA-${normalized.slice(0, 24) || "profile"}`;
+}
+
+const SIMULATED_AVATAR_PALETTE = [
+  { background: "linear-gradient(135deg, #0f2d33, #1f7a70)", foreground: "#d8fff6", label: "Sea mint" },
+  { background: "linear-gradient(135deg, #241c45, #5a46ad)", foreground: "#efe8ff", label: "Signal dusk" },
+  { background: "linear-gradient(135deg, #2f1b18, #a14f2d)", foreground: "#ffe6d8", label: "Cinder tape" },
+  { background: "linear-gradient(135deg, #12291d, #2f7c4d)", foreground: "#e6ffef", label: "Clover tape" },
+  { background: "linear-gradient(135deg, #1d253f, #3d6fd8)", foreground: "#ebf2ff", label: "Chart blue" },
+] as const;
+
+const SIMULATED_PERSONALITY_ARCHETYPES = [
+  {
+    archetype: "Analyst",
+    summary: "Turns raw noise into a clean thesis before saying a word.",
+    traits: ["calm", "methodical", "signal-first", "patient"],
+  },
+  {
+    archetype: "Believer",
+    summary: "Carries conviction early and keeps the timeline focused on the upside case.",
+    traits: ["conviction-heavy", "optimistic", "tribal", "forward-looking"],
+  },
+  {
+    archetype: "Troll",
+    summary: "Baits weak arguments, pokes crowded trades, and keeps the square lively.",
+    traits: ["chaotic", "sharp", "contrarian", "reply-ready"],
+  },
+  {
+    archetype: "Macro Priest",
+    summary: "Frames every move as part of a larger cycle, narrative, or liquidity weather map.",
+    traits: ["narrative-rich", "cyclical", "broad-view", "solemn"],
+  },
+  {
+    archetype: "Thesis Writer",
+    summary: "Explains the world in paragraphs, not slogans, and keeps receipts nearby.",
+    traits: ["verbose", "coherent", "evidence-led", "teaching"],
+  },
+  {
+    archetype: "Sniper",
+    summary: "Waits quietly, strikes on timing, and leaves little room for second guessing.",
+    traits: ["precise", "disciplined", "fast-twitch", "low-noise"],
+  },
+  {
+    archetype: "Lurker",
+    summary: "Says very little until the moment matters, then lands one useful line.",
+    traits: ["quiet", "observant", "timed", "minimal"],
+  },
+  {
+    archetype: "Reply Guy",
+    summary: "Lives in the threads, keeps the conversation moving, and never misses a quote-post.",
+    traits: ["social", "reactive", "sticky", "fast"],
+  },
+  {
+    archetype: "Chart Watcher",
+    summary: "Speaks in levels, momentum, and structure before anything else.",
+    traits: ["technical", "pattern-led", "watchful", "level-aware"],
+  },
+] as const;
+
+const SIMULATED_QNFT_CATALOG = [
+  { label: "Minute Bucket Badge", lore: "Stamped from a clean heartbeat bucket.", rarity: "common" },
+  { label: "Forked Thesis Scroll", lore: "Carries an old world thesis into a fresh cycle.", rarity: "uncommon" },
+  { label: "Mask Rotation Pass", lore: "Tracks a persona swap every ten minutes.", rarity: "rare" },
+  { label: "Percolator Favor", lore: "Reserved for scarce perks without first-come chaos.", rarity: "rare" },
+  { label: "Merkle Echo", lore: "Proof that a public checkpoint remembered this profile.", rarity: "uncommon" },
+  { label: "World Split Map", lore: "Shows both $CAMIUP worlds at the same time.", rarity: "common" },
+  { label: "Signal Lantern", lore: "Keeps one clear line lit through noisy market weather.", rarity: "legendary" },
+  { label: "BolClaw Thread Crown", lore: "Awarded to profiles that keep the square talking.", rarity: "rare" },
+  { label: "Nezha Heat Sink", lore: "Built to survive a hot perp minute without blinking.", rarity: "uncommon" },
+] as const;
+
+function clampIndex(value: number, length: number) {
+  return Math.min(length - 1, Math.max(0, Math.floor(value)));
+}
+
+function pickDisplaySyllable(label: string) {
+  const compact = label.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2).toUpperCase();
+  return compact || "RA";
+}
+
+function buildSimulatedAvatar(seed: string, label: string): SimulatedAvatarProfile {
+  const palette = SIMULATED_AVATAR_PALETTE[
+    clampIndex(seededNumber(seed, 11) * SIMULATED_AVATAR_PALETTE.length, SIMULATED_AVATAR_PALETTE.length)
+  ];
+
+  return {
+    background: palette.background,
+    foreground: palette.foreground,
+    label: palette.label,
+    sigil: pickDisplaySyllable(label),
+  };
+}
+
+function buildSimulatedPersonality(seed: string): SimulatedPersonalityProfile {
+  const template = SIMULATED_PERSONALITY_ARCHETYPES[
+    clampIndex(
+      seededNumber(seed, 17) * SIMULATED_PERSONALITY_ARCHETYPES.length,
+      SIMULATED_PERSONALITY_ARCHETYPES.length,
+    )
+  ];
+
+  const traitOrder = template.traits
+    .map((trait, index) => ({
+      trait,
+      weight: seededNumber(seed, 40 + index),
+    }))
+    .sort((left, right) => left.weight - right.weight)
+    .slice(0, 3)
+    .map((entry) => entry.trait);
+
+  return {
+    archetype: template.archetype,
+    summary: template.summary,
+    traits: traitOrder,
+  };
+}
+
+function buildSimulatedQnfts(seed: string): SimulatedQnft[] {
+  return SIMULATED_QNFT_CATALOG
+    .map((entry, index) => ({
+      entry,
+      order: seededNumber(seed, 80 + index),
+    }))
+    .sort((left, right) => left.order - right.order)
+    .slice(0, 3)
+    .map(({ entry }) => ({
+      id: `qnft:${sha256Hex(`${seed}:${entry.label}`).slice(0, 12)}`,
+      label: entry.label,
+      lore: entry.lore,
+      rarity: entry.rarity,
+    }));
+}
+
+function buildSimulatedFantasyLayer(label: string, seed: string) {
+  return {
+    simulatedAvatar: buildSimulatedAvatar(seed, label),
+    simulatedPersonality: buildSimulatedPersonality(seed),
+    simulatedQnfts: buildSimulatedQnfts(seed),
+  };
+}
+
+async function ensureIdentityProfileFantasy(profile: IdentityProfile) {
+  const displaySeed =
+    profile.sourceKind === "address" ? shortenAddress(profile.walletAddress) : profile.publicLabel;
+  const expectedHandle = getSimulationHandle(displaySeed);
+  const fantasy = buildSimulatedFantasyLayer(
+    profile.publicLabel || profile.displayName,
+    profile.avatarSeed || profile.normalizedAddress,
+  );
+  const needsUpgrade =
+    profile.simulationHandle !== expectedHandle ||
+    !profile.simulatedAvatar ||
+    !profile.simulatedPersonality ||
+    !profile.simulatedQnfts?.length;
+
+  if (!needsUpgrade) {
+    return profile;
+  }
+
+  return simUpsert(FIRESTORE_SIM_COLLECTIONS.identityProfiles, {
+    ...profile,
+    avatarSeed: profile.avatarSeed || profile.normalizedAddress,
+    simulationHandle: expectedHandle,
+    updatedAt: nowIso(),
+    ...fantasy,
+  } satisfies IdentityProfile);
 }
 
 function isHexWallet(value: string) {
@@ -808,6 +976,7 @@ async function ensureRewardUnlock(profileId: string) {
 }
 
 async function syncHumanBitClawProfile(identityProfile: IdentityProfile) {
+  const hydratedProfile = await ensureIdentityProfileFantasy(identityProfile);
   const rewardUnlock = await ensureRewardUnlock(identityProfile.id);
   const [balances, verificationEvents, worlds] = await Promise.all([
     buildSimulationBalances(identityProfile.id),
@@ -825,20 +994,20 @@ async function syncHumanBitClawProfile(identityProfile: IdentityProfile) {
   const timestamp = nowIso();
 
   return upsertBitClawProfile({
-    accentLabel: identityProfile.chain.toUpperCase(),
+    accentLabel: hydratedProfile.chain.toUpperCase(),
     authType: "guest",
     authorType: "human",
     avatarUrl: existing?.avatarUrl || null,
     bio:
       existing?.bio ||
-      `Open public simulation wall for ${identityProfile.displayName}. Posts here are not proof of authorship.`,
+      `Open public simulation wall for ${hydratedProfile.displayName}. Posts here are not proof of authorship.`,
     createdAt: existing?.createdAt || timestamp,
-    displayName: identityProfile.displayName,
+    displayName: hydratedProfile.displayName,
     followerCount: existing?.followerCount ?? 0,
     followingCount: existing?.followingCount ?? 0,
-    guestId: identityProfile.id,
-    handle: existing?.handle || buildBitClawHandle(identityProfile.publicLabel),
-    id: identityProfile.bitClawProfileId,
+    guestId: hydratedProfile.id,
+    handle: existing?.handle || buildBitClawHandle(hydratedProfile.publicLabel),
+    id: hydratedProfile.bitClawProfileId,
     isAutonomous: false,
     pasteTradeBoardUrl: PASTE_TRADE_BOARD_URL,
     pasteTradeRepoUrl: PASTE_TRADE_REPO_URL,
@@ -1495,19 +1664,20 @@ export async function getLoadedIdentityByProfileId(profileId: string) {
   if (!profile) {
     return null;
   }
+  const hydratedProfile = await ensureIdentityProfileFantasy(profile);
 
   const [aliases, rewardLedger, rewardUnlock, balances, benchmarks, botBindings, verificationEvents, worlds] =
     await Promise.all([
     simFilter<IdentityAlias>(
       FIRESTORE_SIM_COLLECTIONS.identityAliases,
-      (alias) => alias.profileId === profile.id,
+      (alias) => alias.profileId === hydratedProfile.id,
     ),
-    ensureRewardLedger(profile.id),
-    ensureRewardUnlock(profile.id),
-    buildSimulationBalances(profile.id),
+    ensureRewardLedger(hydratedProfile.id),
+    ensureRewardUnlock(hydratedProfile.id),
+    buildSimulationBalances(hydratedProfile.id),
     getBenchmarkQuotes(),
-    listBotBindings(profile.id),
-    listVerificationEvents(profile.id),
+    listBotBindings(hydratedProfile.id),
+    listVerificationEvents(hydratedProfile.id),
     ensureTokenWorlds(),
   ]);
 
@@ -1517,12 +1687,12 @@ export async function getLoadedIdentityByProfileId(profileId: string) {
     benchmarks,
     botBindings,
     loadedAt: nowIso(),
-    profile,
+    profile: hydratedProfile,
     rewardLedger,
     rewardUnlock,
     verification: getRewardUnlockVerificationState({
       balances,
-      profileId: profile.id,
+      profileId: hydratedProfile.id,
       rewardUnlock,
       verificationEvents,
       worlds,
@@ -1693,9 +1863,12 @@ export async function loadOrCreateIdentity(input: string) {
     FIRESTORE_SIM_COLLECTIONS.identityProfiles,
     profileId,
   );
+  const fantasyLayer = buildSimulatedFantasyLayer(parsed.displayLabel, parsed.normalizedAddress);
+  const simulationLabel =
+    parsed.sourceKind === "address" ? shortenAddress(parsed.walletAddress) : parsed.displayLabel;
 
   const profile =
-    existing ||
+    (existing ? await ensureIdentityProfileFantasy(existing) : null) ||
     (await simUpsert(FIRESTORE_SIM_COLLECTIONS.identityProfiles, {
       avatarSeed: parsed.normalizedAddress,
       badges: [],
@@ -1713,7 +1886,8 @@ export async function loadOrCreateIdentity(input: string) {
       ownerWallet: parsed.walletAddress,
       publicLabel: parsed.displayLabel,
       rank: 1,
-      simulationHandle: getSimulationHandle(parsed.displayLabel),
+      simulationHandle: getSimulationHandle(simulationLabel),
+      ...fantasyLayer,
       sourceKind: parsed.sourceKind,
       updatedAt: nowIso(),
       walletAddress: parsed.walletAddress,

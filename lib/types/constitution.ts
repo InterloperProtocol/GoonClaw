@@ -302,7 +302,7 @@ export interface ImplementationAuthorityPolicy {
     | "docs/CHILD_PARENT_CONSTITUTION.md"
     | "docs/IMPLEMENTATION_NOTES.md"
   >;
-  readonly publicStatusSurface: "HeartBeat";
+  readonly publicStatusSurface: "Tianshi";
 }
 
 export interface AuditEvent {

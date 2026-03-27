@@ -868,7 +868,7 @@ export const CONSTITUTION: ReadonlyDeep<ConstitutionConfig> =
         "docs/CHILD_PARENT_CONSTITUTION.md",
         "docs/IMPLEMENTATION_NOTES.md",
       ],
-      publicStatusSurface: "HeartBeat",
+      publicStatusSurface: "Tianshi",
     },
 
     audit: {

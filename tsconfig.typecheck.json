@@ -9,6 +9,7 @@
   "exclude": [
     "node_modules",
     ".next",
+    "tests/regression",
     "services/tianshi-automaton/vendor",
     "vendor_automaton_probe",
     "vendor_sendaifun_skills_probe",

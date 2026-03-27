@@ -6,9 +6,6 @@ const ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
 const ERC20_DECIMALS_SELECTOR = "0x313ce567";
 const ERC20_TRANSFER_TOPIC =
   "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const DEFAULT_BNB_VERIFICATION_TARGET =
-  "0x000000000000000000000000000000000000dead";
-
 type ParsedTokenAmount = {
   amount?: string;
   decimals?: number;
@@ -136,7 +133,7 @@ export function getBnbVerificationTarget() {
     return configured.toLowerCase();
   }
 
-  return DEFAULT_BNB_VERIFICATION_TARGET;
+  return "";
 }
 
 export function getSolanaVerificationTarget() {

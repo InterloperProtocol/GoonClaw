@@ -130,7 +130,7 @@ export async function GET() {
         constitutionRoute: "/api/constitution",
         brainsRoute: "/api/brains",
         route: "/api/agent/status",
-        surfaceName: "HeartBeat",
+        surfaceName: "Tianshi",
       },
     });
   } catch (error) {

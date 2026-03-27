@@ -1,30 +1,39 @@
 import Link from "next/link";
 
 import { AddressLoadForm } from "@/components/identity/AddressLoadForm";
+import { TianezhaChatClient } from "@/components/shell/TianezhaChatClient";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   getBitClawWall,
   getCurrentLoadedIdentity,
   getGenDelveState,
+  getHeartbeatState,
   getNezhaState,
   getTianziState,
 } from "@/lib/server/tianezha-simulation";
-import { deriveRankLabel, groupBadgesByCategory } from "@/lib/simulation/meta";
-import { formatCompact, formatUsd } from "@/lib/utils";
+import { deriveRankLabel } from "@/lib/simulation/meta";
+import { formatCompact } from "@/lib/utils";
 
 export async function LoadedIdentityRail() {
   const loadedIdentity = await getCurrentLoadedIdentity();
   const loadedBitClawHref = loadedIdentity
     ? `/bitclaw/${encodeURIComponent(loadedIdentity.profile.bitClawProfileId)}`
     : "/bitclaw";
-  const [wall, tianzi, nezha, gendelve] = loadedIdentity
+  const [wall, tianzi, nezha, gendelve, heartbeat] = loadedIdentity
     ? await Promise.all([
         getBitClawWall(loadedIdentity.profile.bitClawProfileId),
         getTianziState(loadedIdentity.profile.id),
         getNezhaState(loadedIdentity.profile.id),
         getGenDelveState(loadedIdentity.profile.id),
+        getHeartbeatState(),
       ])
-    : [null, null, null, null];
+    : await Promise.all([
+        Promise.resolve(null),
+        getTianziState(),
+        getNezhaState(),
+        getGenDelveState(),
+        getHeartbeatState(),
+      ]);
 
   const rankLabel = loadedIdentity
     ? deriveRankLabel({
@@ -32,22 +41,18 @@ export async function LoadedIdentityRail() {
         totalRewards: loadedIdentity.rewardLedger.totalRewards,
       })
     : null;
-  const groupedBadges = loadedIdentity
-    ? groupBadgesByCategory(loadedIdentity.rewardLedger.badges)
-    : [];
-  const holderTargets = loadedIdentity
-    ? Object.entries(loadedIdentity.verification.holderVerificationTargets)
-        .map(([chain, target]) => `${chain}:${target}`)
-        .join(" | ")
-    : "";
+  const worldSummary = tianzi.worldQuotes.map(({ world }) => world.displayName).join(" / ");
+  const railIntro = loadedIdentity
+    ? `You are guiding ${loadedIdentity.profile.displayName} as ${loadedIdentity.profile.simulationHandle}. Explain their BitClaw profile, what BolClaw is saying, what Tianzi predicts, what Nezha is pricing, what Tianshi sees, and whether GenDelve is ready.`
+    : "Explain Tianezha clearly. Tell the player to enter a wallet address or ENS, SNS, or .bnb name, then describe how BitClaw, BolClaw, Tianzi, Nezha, Tianshi, and GenDelve open after the profile is rebuilt.";
 
   return (
     <div className="loaded-rail-shell">
       <section className="panel loaded-rail-panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">BitClaw profile</p>
-            <h2>{loadedIdentity ? "Your world identity" : "Enter the world"}</h2>
+            <p className="eyebrow">Tianezha rail</p>
+            <h2>{loadedIdentity ? "Your loaded profile and world state" : "Enter the world"}</h2>
           </div>
         </div>
 
@@ -57,22 +62,45 @@ export async function LoadedIdentityRail() {
         />
 
         {!loadedIdentity ? (
-          <div className="loaded-rail-empty">
-            <p className="route-summary">
-              Load any address or registry name to pin your BitClaw profile here. This rail then
-              follows you across Tianezha, BolClaw, Tianzi, Nezha, GenDelve, and HeartBeat.
-            </p>
+          <div className="mini-list">
+            <article className="mini-item-card">
+              <div>
+                <span>What Tianezha is</span>
+                <strong>Simulation-first financial RPG and social-finance world</strong>
+              </div>
+              <p className="route-summary compact">
+                Enter a wallet or registry name and Tianezha rebuilds the BitClaw profile that
+                anchors the rest of the shell.
+              </p>
+            </article>
+            <article className="mini-item-card">
+              <div>
+                <span>What happens after load</span>
+                <strong>BitClaw first, then the full world opens</strong>
+              </div>
+              <p className="route-summary compact">
+                BitClaw becomes your profile, BolClaw becomes your public square, and the same
+                identity carries into Tianzi, Nezha, Tianshi, and GenDelve.
+              </p>
+            </article>
+            <article className="mini-item-card">
+              <div>
+                <span>World now</span>
+                <strong>{heartbeat.snapshot.activeAgentIds.length} / 42 RA agents active</strong>
+              </div>
+              <p className="route-summary compact">
+                Tianzi is asking {tianzi.question.title} while Nezha is pricing{" "}
+                {nezha.markets.length} simulated perp books.
+              </p>
+            </article>
           </div>
         ) : (
           <div className="loaded-rail-sections">
             <section className="loaded-rail-section">
               <div className="loaded-rail-heading">
                 <div>
-                  <p className="eyebrow">Identity</p>
-                  <h3>
-                    {loadedIdentity.profile.displayName}
-                    {loadedIdentity.verification.verificationTick ? " [verified]" : ""}
-                  </h3>
+                  <p className="eyebrow">Loaded profile</p>
+                  <h3>{loadedIdentity.profile.displayName}</h3>
                 </div>
                 <StatusBadge tone={loadedIdentity.rewardUnlock.claimsUnlocked ? "success" : "warning"}>
                   {loadedIdentity.rewardUnlock.claimsUnlocked ? "Verified owner" : "Unverified wall"}
@@ -80,7 +108,7 @@ export async function LoadedIdentityRail() {
               </div>
               <div className="loaded-identity-card">
                 <div>
-                  <span>Resolved identity</span>
+                  <span>Resolved name</span>
                   <strong>{loadedIdentity.profile.publicLabel}</strong>
                 </div>
                 <div>
@@ -98,14 +126,30 @@ export async function LoadedIdentityRail() {
                   </strong>
                 </div>
                 <div>
-                  <span>BitClaw</span>
-                  <Link href={loadedBitClawHref}>Open profile</Link>
+                  <span>Rewards and rank</span>
+                  <strong>
+                    {formatCompact(loadedIdentity.rewardLedger.totalRewards)} / {rankLabel} / #
+                    {loadedIdentity.rewardLedger.rank}
+                  </strong>
                 </div>
                 <div>
-                  <span>BolClaw</span>
-                  <Link href="/bolclaw">Enter public square</Link>
+                  <span>BitClaw posting</span>
+                  <strong>{wall?.posts.length ?? 0} public posts</strong>
                 </div>
               </div>
+              <article className="mini-item-card">
+                <div>
+                  <span>Simulated fantasy layer</span>
+                  <strong>
+                    {loadedIdentity.profile.simulatedPersonality.archetype} /{" "}
+                    {loadedIdentity.profile.simulatedQnfts.length} qNFTs
+                  </strong>
+                </div>
+                <p className="route-summary compact">
+                  Personality, avatar, and qNFTs are simulated profile fantasy elements, not live
+                  custody assets.
+                </p>
+              </article>
               <div className="button-row">
                 <Link className="button button-primary" href={loadedBitClawHref}>
                   Open BitClaw
@@ -119,122 +163,42 @@ export async function LoadedIdentityRail() {
             <section className="loaded-rail-section">
               <div className="loaded-rail-heading">
                 <div>
-                  <p className="eyebrow">Rewards</p>
-                  <h3>{formatCompact(loadedIdentity.rewardLedger.totalRewards)} total</h3>
+                  <p className="eyebrow">World now</p>
+                  <h3>What the loaded world is doing right now</h3>
                 </div>
               </div>
               <div className="loaded-identity-card">
                 <div>
-                  <span>Available</span>
-                  <strong>{loadedIdentity.rewardLedger.availableRewards.toFixed(2)}</strong>
+                  <span>Tianzi</span>
+                  <strong>{tianzi.question.title}</strong>
                 </div>
                 <div>
-                  <span>Locked</span>
-                  <strong>{loadedIdentity.rewardLedger.lockedRewards.toFixed(2)}</strong>
-                </div>
-                <div>
-                  <span>Rank</span>
+                  <span>Nezha</span>
                   <strong>
-                    {rankLabel} / #{loadedIdentity.rewardLedger.rank}
+                    {nezha.positions.length} positions / {nezha.markets.length} books
                   </strong>
                 </div>
                 <div>
-                  <span>Unlock path</span>
-                  <Link href="/gendelve">GenDelve and owner verification</Link>
-                </div>
-              </div>
-            </section>
-
-            <section className="loaded-rail-section">
-              <div className="loaded-rail-heading">
-                <div>
-                  <p className="eyebrow">World activity</p>
-                  <h3>What moves with this profile</h3>
-                </div>
-              </div>
-              <div className="loaded-identity-card">
-                <div>
-                  <span>BolClaw posts</span>
-                  <strong>{wall?.posts.length ?? 0}</strong>
+                  <span>Tianshi</span>
+                  <strong>{heartbeat.snapshot.activeAgentIds.length} / 42 active</strong>
                 </div>
                 <div>
-                  <span>Tianzi history</span>
-                  <strong>{tianzi?.profilePositions.length ?? 0} positions</strong>
-                </div>
-                <div>
-                  <span>Nezha history</span>
-                  <strong>{nezha?.positions.length ?? 0} positions</strong>
-                </div>
-                <div>
-                  <span>GenDelve status</span>
+                  <span>GenDelve</span>
                   <strong>
-                    {gendelve?.intents.length
+                    {gendelve.intents.length
                       ? `${gendelve.intents.length} intents`
                       : loadedIdentity.verification.verificationTick
-                        ? "Verified"
-                        : "No vote yet"}
+                        ? "Verified for governance"
+                        : "Not verified yet"}
                   </strong>
                 </div>
                 <div>
-                  <span>Replies and reactions</span>
-                  <strong>
-                    {(wall?.posts ?? []).reduce(
-                      (total, post) => total + post.commentCount + post.likeCount,
-                      0,
-                    )}
-                  </strong>
+                  <span>BolClaw</span>
+                  <strong>{wall?.posts.length ?? 0} profile posts</strong>
                 </div>
                 <div>
-                  <span>Latest move</span>
-                  <strong>
-                    {wall?.posts[0]
-                      ? new Date(wall.posts[0].createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "No posts yet"}
-                  </strong>
-                </div>
-              </div>
-            </section>
-
-            <section className="loaded-rail-section">
-              <div className="loaded-rail-heading">
-                <div>
-                  <p className="eyebrow">Badges</p>
-                  <h3>{loadedIdentity.rewardLedger.badges.length} unlocked signals</h3>
-                </div>
-              </div>
-              <div className="mini-list">
-                {groupedBadges.length ? (
-                  groupedBadges.map((group) => (
-                    <article key={group.category} className="mini-item-card">
-                      <div>
-                        <span>{group.category}</span>
-                        <strong>{group.items.join(", ")}</strong>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <article className="mini-item-card">
-                    <div>
-                      <span>No badges yet</span>
-                      <strong>Public play is live</strong>
-                    </div>
-                    <p className="route-summary compact">
-                      Trade Tianzi, place Nezha orders, post through BitClaw and BolClaw, or verify
-                      ownership to start climbing the ladder.
-                    </p>
-                  </article>
-                )}
-              </div>
-            </section>
-
-            <section className="loaded-rail-section">
-              <div className="loaded-rail-heading">
-                <div>
-                  <p className="eyebrow">Simulation balances</p>
-                  <h3>Two $CAMIUP worlds</h3>
+                  <span>World summary</span>
+                  <strong>{worldSummary}</strong>
                 </div>
               </div>
               <div className="mini-list">
@@ -255,69 +219,20 @@ export async function LoadedIdentityRail() {
                 ))}
               </div>
             </section>
-
-            <section className="loaded-rail-section">
-              <div className="loaded-rail-heading">
-                <div>
-                  <p className="eyebrow">GenDelve and deploy gate</p>
-                  <h3>
-                    {loadedIdentity.verification.verificationTick
-                      ? "Verification tick live"
-                      : "Verification tick locked"}
-                  </h3>
-                </div>
-              </div>
-              <div className="loaded-identity-card">
-                <div>
-                  <span>Real governance</span>
-                  <strong>Solana + BNB $CAMIUP only</strong>
-                </div>
-                <div>
-                  <span>1-token transfer</span>
-                  <strong>Required only for GenDelve</strong>
-                </div>
-                <div>
-                  <span>Deploy permission</span>
-                  <strong>
-                    {loadedIdentity.verification.canDeployAgent ? "Enabled" : "Disabled"}
-                  </strong>
-                </div>
-                <div>
-                  <span>Eligible chains</span>
-                  <strong>
-                    {loadedIdentity.verification.verifiedHolderChains.join(", ") || "none"}
-                  </strong>
-                </div>
-                <div>
-                  <span>Static targets</span>
-                  <strong>{holderTargets || "none"}</strong>
-                </div>
-                <div>
-                  <span>Deploy agent</span>
-                  <Link href="/agent">
-                    {loadedIdentity.verification.canDeployAgent ? "Open cockpit" : "Locked"}
-                  </Link>
-                </div>
-              </div>
-              <div className="mini-list">
-                {loadedIdentity.benchmarks.map((quote) => (
-                  <article key={quote.symbol} className="mini-item-card">
-                    <div>
-                      <span>{quote.symbol}</span>
-                      <strong>{formatUsd(quote.priceUsd)}</strong>
-                    </div>
-                    <p className="route-summary compact">
-                      {quote.change24hPct == null
-                        ? quote.source
-                        : `${quote.change24hPct.toFixed(2)}% / ${quote.source}`}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
           </div>
         )}
       </section>
+
+      <TianezhaChatClient
+        heading={loadedIdentity ? "Ask about your loaded world" : "Ask how Tianezha works"}
+        initialMessage={railIntro}
+        placeholder={
+          loadedIdentity
+            ? "What should I do next with this profile?"
+            : "What happens after I enter an address?"
+        }
+        variant="rail"
+      />
     </div>
   );
 }

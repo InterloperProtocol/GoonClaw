@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:regression": "vitest run -c vitest.regression.config.ts",
+    "test:regression:watch": "vitest -c vitest.regression.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.typecheck.json",
     "worker:dev": "tsx workers/server.ts",

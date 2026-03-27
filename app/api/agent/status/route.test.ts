@@ -13,7 +13,7 @@ describe("/api/agent/status GET", () => {
     autonomousAgentModule.getAutonomousStatusWithLiveReserve.mockReset();
   });
 
-  it("includes the HeartBeat surface metadata and constitution snapshot", async () => {
+  it("includes the Tianshi surface metadata and constitution snapshot", async () => {
     autonomousAgentModule.getAutonomousStatusWithLiveReserve.mockResolvedValue({
       agentId: "tianshi-autonomous-agent",
       treasury: {
@@ -42,7 +42,7 @@ describe("/api/agent/status GET", () => {
     };
 
     expect(response.status).toBe(200);
-    expect(payload.heartBeat?.surfaceName).toBe("HeartBeat");
+    expect(payload.heartBeat?.surfaceName).toBe("Tianshi");
     expect(payload.heartBeat?.route).toBe("/api/agent/status");
     expect(payload.heartBeat?.brainsRoute).toBe("/api/brains");
     expect(payload.constitution?.reserve?.floorLamports).toBe("694200000");

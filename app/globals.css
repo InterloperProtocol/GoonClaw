@@ -3007,6 +3007,7 @@ pre.bitclaw-side-copy {
 .loaded-rail-panel,
 .loaded-rail-sections,
 .loaded-rail-section,
+.bitclaw-fantasy-grid,
 .simulation-card-grid,
 .stack-grid,
 .quote-grid,
@@ -3042,6 +3043,7 @@ pre.bitclaw-side-copy {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.bitclaw-fantasy-grid,
 .loaded-home-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -3157,6 +3159,10 @@ pre.bitclaw-side-copy {
   overflow: auto;
 }
 
+.chat-shell-panel-rail .chat-shell-feed {
+  max-height: min(38vh, 22rem);
+}
+
 .chat-bubble.assistant {
   border-color: rgba(155, 200, 192, 0.3);
 }
@@ -3172,6 +3178,30 @@ pre.bitclaw-side-copy {
   line-height: 1.7;
 }
 
+.bitclaw-generated-avatar {
+  display: grid;
+  place-items: center;
+  min-height: 7rem;
+  border-radius: 0.4rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 2rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+details.panel > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details.panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.panel[open] > summary {
+  margin-bottom: 0.85rem;
+}
+
 .checkbox-field {
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -3185,6 +3215,7 @@ pre.bitclaw-side-copy {
 @media (max-width: 1180px) {
   .tianezha-layout,
   .module-grid-3x2,
+  .bitclaw-fantasy-grid,
   .loaded-home-grid,
   .simulation-card-grid,
   .stack-grid {

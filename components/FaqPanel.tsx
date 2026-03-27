@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const faqItems = [
   {
-    question: "What does HeartBeat show?",
+    question: "What does Tianshi show?",
     answer:
-      "HeartBeat is the public legibility layer for Tianshi: live runtime health, reserve posture, recent updates, and the serious operating surface behind the network.",
+      "Tianshi is the public intelligence layer for the world: active agents, current stance, social pulse, and the heartbeat publisher.",
   },
   {
     question: "Can I control anything from here?",

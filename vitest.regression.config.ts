@@ -3,6 +3,10 @@ import path from "path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
@@ -10,7 +14,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    globals: true,
     exclude: [
       "**/node_modules/**",
       "**/.next/**",
@@ -26,7 +29,9 @@ export default defineConfig({
       "**/PUMPREF/**",
       "**/HELIUSREF/**",
       "**/HeliusRef/**",
-      "tests/regression/**",
     ],
+    globals: true,
+    include: ["tests/regression/**/*.test.ts", "tests/regression/**/*.test.tsx"],
+    setupFiles: ["./tests/regression/setup.tsx"],
   },
 });

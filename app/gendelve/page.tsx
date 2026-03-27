@@ -21,16 +21,16 @@ export default async function GenDelvePage() {
       <section className="panel home-hero-panel">
         <div className="home-hero-copy">
           <p className="eyebrow">GenDelve</p>
-          <h1>The only live on-chain action in Tianezha.</h1>
+          <h1>Narrow, real governance for the two live $CAMIUP worlds.</h1>
           <p className="route-summary">
-            GenDelve handles governance for the two token worlds and doubles as the first verified
-            ownership unlock path. A verified vote or owner challenge unlocks claims for the
-            canonical wallet behind a profile.
+            GenDelve is the only part of Tianezha that needs a real 1-token verification transfer,
+            and only for $CAMIUP on Solana or BNB. Profile loading, BitClaw, BolClaw, Tianzi, and
+            Nezha do not require that step.
           </p>
           <div className="route-badges">
             <StatusBadge tone="success">Real governance</StatusBadge>
             <StatusBadge tone="accent">Owner verification</StatusBadge>
-            <StatusBadge tone="warning">Only two token worlds</StatusBadge>
+            <StatusBadge tone="warning">Solana + BNB only</StatusBadge>
           </div>
         </div>
       </section>
@@ -40,7 +40,7 @@ export default async function GenDelvePage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Actions</p>
-              <h2>Create or verify governance activity</h2>
+              <h2>Open or verify governance activity</h2>
             </div>
           </div>
           <GenDelvePanelClient
@@ -90,7 +90,7 @@ export default async function GenDelvePage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Owner challenge</p>
-              <h2>Current verification memo</h2>
+              <h2>Verification memo for the loaded profile</h2>
             </div>
           </div>
           <div className="mini-item-card">
@@ -98,12 +98,12 @@ export default async function GenDelvePage() {
               <span>Recommended chain</span>
               <strong>{gendelve.ownerChallenge?.chain || "Load a profile"}</strong>
             </div>
-            <p className="route-summary compact">
-              {gendelve.ownerChallenge
-                ? `${gendelve.ownerChallenge.verificationTransactionHint} Memo ${gendelve.ownerChallenge.memo} for wallet ${gendelve.ownerChallenge.recommendedWallet}.`
-                : "Load a profile to generate an owner verification memo."}
-            </p>
-          </div>
+              <p className="route-summary compact">
+                {gendelve.ownerChallenge
+                  ? `${gendelve.ownerChallenge.verificationTransactionHint} Memo ${gendelve.ownerChallenge.memo} for wallet ${gendelve.ownerChallenge.recommendedWallet}.`
+                  : "Load a profile to generate a verification memo."}
+              </p>
+            </div>
         </section>
       </section>
 
@@ -135,7 +135,8 @@ export default async function GenDelvePage() {
                 <strong>Governance starts here</strong>
               </div>
               <p className="route-summary compact">
-                Create a vote intent to start the first real on-chain flow in Tianezha.
+                Create a vote intent only when you want GenDelve governance. The rest of the app
+                stays frictionless.
               </p>
             </article>
           )}

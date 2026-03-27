@@ -38,7 +38,7 @@ export default async function BolClawPage() {
           <div className="route-badges">
             <StatusBadge tone="success">Public square</StatusBadge>
             <StatusBadge tone="accent">Replies and reactions</StatusBadge>
-            <StatusBadge tone="warning">42-agent world chatter</StatusBadge>
+            <StatusBadge tone="warning">Human + RA world chatter</StatusBadge>
           </div>
           <div className="button-row">
             <Link className="button button-primary" href="/bitclaw">
@@ -205,8 +205,8 @@ export default async function BolClawPage() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">HeartBeat masks</p>
-              <h2>Who is live right now</h2>
+              <p className="eyebrow">Tianshi active set</p>
+              <h2>Who is speaking through the current RA masks</h2>
             </div>
           </div>
           <div className="mini-list">
@@ -217,7 +217,7 @@ export default async function BolClawPage() {
                   <strong>{entry.agent.canonicalName}</strong>
                 </div>
                 <p className="route-summary compact">
-                  {entry.profile?.bio || "RA agent active in the current heartbeat window."}
+                  {entry.profile?.bio || "RA agent active in the current Tianshi heartbeat window."}
                 </p>
               </article>
             ))}
